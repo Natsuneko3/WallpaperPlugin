@@ -77,19 +77,14 @@ bool FWallPaperModule::OnSettingModified()
 		bLasyType = StyleSettings->UseWallpaperEngine;
 		TArray<struct FFileChangeData> FileChanges;
 		Reimport(FileChanges);
+		CreateWatcher();
 	}
-
-	UWindowsTargetSettings* DefaultRHi = GetMutableDefault<UWindowsTargetSettings>();
-	if (DefaultRHi->DefaultGraphicsRHI == EDefaultGraphicsRHI::DefaultGraphicsRHI_DX12 && StyleSettings->UseWallpaperEngine)
-	{
-		FMessageDialog::Open(EAppMsgType::Ok,
-		                     LOCTEXT("WallpaperTip", "请把RHI换到Dx11或者vulkan，在project setting->platfrom->window里面 \n 因为dx12暂时不支持播放视频")); //TODO 语言切换
-		StyleSettings->UseWallpaperEngine = false;
-	}
+	
 	GetMutableDefault<UEditorStyleSettings>()->bUseGrid = StyleSettings->EditorUseGrid;
 	ApplyMenuBackGround();
 	ApplyThemeStyle();
 	CheckTimer();
+
 	auto& CoreStyles = FCoreStyle::Get();
 	FWindowStyle& WindowsEditor = (FWindowStyle&)CoreStyles.GetWidgetStyle<FWindowStyle>("Window");
 	WindowsEditor.BackgroundBrush.TintColor = FLinearColor(FVector(StyleSettings->EditorOpacity));
@@ -117,7 +112,7 @@ void FWallPaperModule::InitialEditorStyle()
 
 	auto& CoreStyles = FCoreStyle::Get();
 	FWindowStyle& WindowsEditor = (FWindowStyle&)CoreStyles.GetWidgetStyle<FWindowStyle>("Window");
-	SolidBackground.TintColor = FLinearColor(0,0,0,0);
+	SolidBackground.TintColor = FLinearColor(0, 0, 0, 0);
 
 	if (IsValid(WallpaperPlayer))
 	{
@@ -141,43 +136,23 @@ void FWallPaperModule::InitialEditorStyle()
 				WindowsEditor.BackgroundBrush.TintColor = FLinearColor(FVector(StyleSettings->EditorOpacity));
 				WindowsEditor.ChildBackgroundBrush = panel;
 				WindowsEditor.ChildBackgroundBrush.TintColor = FLinearColor(FVector(StyleSettings->PanelOpacity));
-				
 			}
 			else
 			{
-				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2),0);
-				int RandomPanel =  FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1),0);
+				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+				int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
 				HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
 				HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
 			}
-
-
-			
 		}
 		else
 		{
 			if (Wallpaperlist.Num() > 0)
 			{
-				int RamdomEditor =  FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2),0);
-				int RandomPanel =  FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1),0);
+				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+				int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
 				ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
 				ApplyPanelBGWithDx12(Wallpaperlist[RandomPanel]);
-			}
-			else
-			{
-				UTexture* EditorTexture = LoadObject<UTexture>(NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/wallhaven-966dxk"));
-				UTexture* PanelTexture = LoadObject<UTexture>(NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/wallhaven-4g62qe"));
-				Editor.SetResourceObject(EditorTexture);
-				Editor.SetImageSize(FVector2D(32, 32));
-
-				panel.SetResourceObject(PanelTexture);
-				panel.SetImageSize(FVector2D(32, 32));
-
-				WindowsEditor.BackgroundBrush = Editor;
-				WindowsEditor.BackgroundBrush.TintColor = FLinearColor(FVector(StyleSettings->EditorOpacity));
-				WindowsEditor.ChildBackgroundBrush = panel;
-				WindowsEditor.ChildBackgroundBrush.TintColor = FLinearColor(FVector(StyleSettings->PanelOpacity));
-				
 			}
 		}
 	}
@@ -188,7 +163,7 @@ void FWallPaperModule::ApplyMenuBackGround()
 	auto& CoreStyles = FCoreStyle::Get();
 	FWindowStyle& WindowsEditor = (FWindowStyle&)CoreStyles.GetWidgetStyle<FWindowStyle>("Window");
 	FSlateBrush& MenuBackground = *(FSlateBrush*)CoreStyles.GetBrush("Menu.Background");
-	StyleSettings->Menu_Background.ImageSize =  FVector2D(32, 32);
+	StyleSettings->Menu_Background.ImageSize = FVector2D(32, 32);
 	MenuBackground = StyleSettings->Menu_Background;
 }
 
@@ -230,7 +205,7 @@ void FWallPaperModule::ApplyPanelBGWithDx12(TSharedPtr<FString> Item)
 	WindowsEditor.ChildBackgroundBrush.TintColor = FLinearColor(FVector(StyleSettings->PanelOpacity));
 	auto& EditorStyles = FEditorStyle::Get();
 	FSlateBrush& SolidBackground = *(FSlateBrush*)EditorStyles.GetBrush("Graph.Panel.SolidBackground");
-	SolidBackground.TintColor = FLinearColor(0,0,0,0);
+	SolidBackground.TintColor = FLinearColor(0, 0, 0, 0);
 }
 
 
@@ -264,11 +239,39 @@ void FWallPaperModule::RegisterMenus()
 	TSharedRef<SWidget> WallpaperWidget = SNew(SHorizontalBox)
 
 		+ SHorizontalBox::Slot()
+		  .AutoWidth()
+		  .VAlign(VAlign_Center)
+		[
+			SNew(SCheckBox)
+		.ToolTipText(LOCTEXT("CheckBoxTooltip", "Enable Wallpaper engine"))
+		.IsChecked_Lambda(
+				               [=]() -> ECheckBoxState
+				               {
+					               return StyleSettings->UseWallpaperEngine
+						                      ? ECheckBoxState::Checked
+						                      : ECheckBoxState::Unchecked;
+				               })
+		.OnCheckStateChanged_Lambda([this](ECheckBoxState InCheckBoxState)
+			               {
+				               if (InCheckBoxState == ECheckBoxState::Checked)
+				               {
+					               StyleSettings->UseWallpaperEngine = true;
+				               }
+				               else
+				               {
+					               StyleSettings->UseWallpaperEngine = false;
+				               }
+				               WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
+				               TArray<struct FFileChangeData> FileChanges;
+				               Reimport(FileChanges);
+			               })
+		]
+		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		[
 			SAssignNew(WallPaperPanelComboBox, SComboBox< TSharedPtr<FString> >)
 				.OptionsSource(&Wallpaperlist)
-				
+
 			//.InitiallySelectedItem(Wallpaperlist[10])
 				.OnGenerateWidget_Lambda([](TSharedPtr<FString> Item)
 			                                                                    {
@@ -386,8 +389,8 @@ void FWallPaperModule::CheckTimer()
 		{
 			if (Wallpaperlist.Num() > 0)
 			{
-				int RamdomEditor =  FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2),0);
-				int RandomPanel =  FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1),0);
+				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+				int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
 				HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
 				HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
 			}
@@ -401,27 +404,28 @@ void FWallPaperModule::CheckTimer()
 
 void FWallPaperModule::CreateWatcher()
 {
-	if (!bWatcherIsRunning)
+	if (DirectoryWatcherHandle.IsValid())
 	{
-		bWatcherIsRunning = true;
-		FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>("DirectoryWatcher");
-		IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
+		DirectoryWatcherHandle.Reset();
+	}
 
-		if (DirectoryWatcher && Wallpaperlist.Num() > 0)
+	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>("DirectoryWatcher");
+	IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
+
+	if (DirectoryWatcher && Wallpaperlist.Num() > 0)
+	{
+		if (WallpaperPlayer->CanPlayvideo())
 		{
-			if (WallpaperPlayer->CanPlayvideo())
-			{
-				const FString Path = (StyleSettings->WallPaperDirectoryPath.Path) + "/steamapps/workshop/content";
-				DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(
-					Path, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FWallPaperModule::Reimport), DirectoryWatcherHandle);
-			}
-			else
-			{
-				const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";
-				DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(FilePath,
-				                                                          IDirectoryWatcher::FDirectoryChanged::CreateRaw(
-					                                                          this, &FWallPaperModule::Reimport), DirectoryWatcherHandle);
-			}
+			const FString Path = (StyleSettings->WallPaperDirectoryPath.Path) + "/steamapps/workshop/content";
+			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(
+				Path, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FWallPaperModule::Reimport), DirectoryWatcherHandle);
+		}
+		else
+		{
+			const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";
+			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(FilePath,
+			                                                          IDirectoryWatcher::FDirectoryChanged::CreateRaw(
+				                                                          this, &FWallPaperModule::Reimport), DirectoryWatcherHandle);
 		}
 	}
 }
@@ -437,7 +441,6 @@ void FWallPaperModule::Reimport(const TArray<struct FFileChangeData>& FileChange
 	UE_LOG(LogTemp, Log, TEXT("FIle is reimport"))
 	ImportWallpaper();
 	InitialEditorStyle();
-	
 }
 
 
@@ -452,6 +455,15 @@ void FWallPaperModule::ImportWallpaper()
 	WallpaperPath.Reset();
 	Wallpaperlist.Reset();
 	LastWallpaperPath = StyleSettings->WallPaperDirectoryPath.Path;
+	UWindowsTargetSettings* DefaultRHi = GetMutableDefault<UWindowsTargetSettings>();
+	if (DefaultRHi->DefaultGraphicsRHI == EDefaultGraphicsRHI::DefaultGraphicsRHI_DX12 && StyleSettings->UseWallpaperEngine)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok,
+							 LOCTEXT("WallpaperTip",
+									 "Please Change RHI to DX11 or vulkan in Project setting -> Platfrom -> Window \n because this version no support play video in dx12"));
+		StyleSettings->UseWallpaperEngine = false;
+		WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
+	}
 	if (WallpaperPlayer->CanPlayvideo())
 	{
 		const FString Path = (StyleSettings->WallPaperDirectoryPath.Path) + "/steamapps/workshop/content";
@@ -474,13 +486,16 @@ void FWallPaperModule::ImportWallpaper()
 		}
 		else
 		{
-			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("WallpaperTip", "Your wallpaper engine path is no vaild."));
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("WallpaperTip", "Your wallpaper engine path is no vaild.\n please go to editor setting -> wallpaper check you setting"));
+			StyleSettings->UseWallpaperEngine = false;
+			WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
 			ImportPicTheme();
 		}
 	}
 	else
 	{
-		//把图片list写入wallpaperlist
+		StyleSettings->UseWallpaperEngine = false;
+		WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
 		ImportPicTheme();
 	}
 
@@ -498,18 +513,26 @@ void FWallPaperModule::ImportPicTheme()
 
 		IFileManager::Get().FindFiles(FinderFile, *FilePath,TEXT("*.uasset"));
 		MaxNum = FinderFile.Num();
-		UE_LOG(LogTemp, Warning, TEXT("DataNUm:%i"), MaxNum);
-		for (FString Result : FinderFile)
+		if (MaxNum > 0)
 		{
-			Result = Result.LeftChop(7);
-			FString LoadFilePath = "/Game/Wallpaper" / Result;
-			UTexture* TextureFile = LoadObject<UTexture>(NULL, *LoadFilePath);
-			if (TextureFile) //&&asset.PackagePath == FName("/Game/Wallpaper")
+			for (FString Result : FinderFile)
 			{
-				Wallpaperlist.Add(MakeShareable(new FString(Result)));
-				WallpaperPath.Add(MakeShareable(new FString(LoadFilePath)));
-				//UE_LOG(LogTemp,Warning,TEXT("DataNUm:%s"),*asset.PackagePath.ToString());
+				Result = Result.LeftChop(7);
+				FString LoadFilePath = "/Game/Wallpaper" / Result;
+				UTexture* TextureFile = LoadObject<UTexture>(NULL, *LoadFilePath);
+				if (TextureFile) //&&asset.PackagePath == FName("/Game/Wallpaper")
+				{
+					Wallpaperlist.Add(MakeShareable(new FString(Result)));
+					WallpaperPath.Add(MakeShareable(new FString(LoadFilePath)));
+				}
 			}
+		}
+		else
+		{
+			Wallpaperlist.Add(MakeShareable(new FString("Default_1")));
+			Wallpaperlist.Add(MakeShareable(new FString("Default_2")));
+			WallpaperPath.Add(MakeShareable(new FString("/WallPaper/WallPaperEngine/Backgound/wallhaven-4g62qe")));
+			WallpaperPath.Add(MakeShareable(new FString("/WallPaper/WallPaperEngine/Backgound/wallhaven-966dxk")));
 		}
 	}
 	else
@@ -529,7 +552,7 @@ TSharedRef<SWidget> FWallPaperModule::HandleGenerateWidget(TSharedPtr<FString> I
 
 int FWallPaperModule::FindWallpaperIndex(TSharedPtr<FString> Item)
 {
-	int Num = FMath::RandRange(0, Wallpaperlist.Num());
+	int Num = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num()),0);
 	//找到并且播放
 	for (int32 OptionIndex = 0; OptionIndex < Wallpaperlist.Num(); ++OptionIndex)
 	{
@@ -598,7 +621,7 @@ void FWallPaperModule::HandlePanelSelectionChanged(TSharedPtr<FString> Item)
 				IsPanelVideoMatarial = true;
 			}
 
-			int Num = FMath::RandRange(0, Wallpaperlist.Num());
+			int Num = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num()),0);
 			for (int32 OptionIndex = 0; OptionIndex < Wallpaperlist.Num(); ++OptionIndex)
 			{
 				if (Wallpaperlist[OptionIndex] == Item)
