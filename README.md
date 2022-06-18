@@ -22,5 +22,10 @@
 <img src="./assets/%E5%9B%BE%E7%89%874.png" width="300">
 
 ## 设置界面说明
-打开editor setting \
-<img src="./assets/%E5%9B%BE%E7%89%875.png" >
+Use Wallpaper Engine : 播放视频，ue5.0版本中DX12不支持播放，在UE5.1中问题修复 \
+UseGrid : 材质背景网格 \
+Editor/ Panel Opacity : 背景透明度 \
+Enable Timer : 随机背景播放循环 \
+Wallpaper Direction : WallPaper Engine 路径 ，写你的steam文件夹，例如我把D:\steam ，会自动找到位于/steamapps/workshop/content下面所有视频，要是自己的视频库的话，请自动加上这个路径 \
+Menu BackGround ： 右键菜单栏背景 其中Tint可以调节颜色与透明度
+<img src="./assets/%E5%9B%BE%E7%89%875.png"> 
