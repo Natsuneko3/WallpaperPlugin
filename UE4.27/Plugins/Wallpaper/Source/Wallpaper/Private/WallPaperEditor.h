@@ -1,0 +1,46 @@
+﻿// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "MediaPlayer.h"
+#include "MediaTexture.h"
+#include "WallPaperEditor.generated.h"
+
+
+/**
+ * 
+ */
+UCLASS(BlueprintType, hidecategories=(Object))
+class WALLPAPER_API UWallPaperBrush : public UObject
+{
+	GENERATED_UCLASS_BODY()
+	
+public:
+	const FString AssetPath = "/Wallpaper/UMG";
+	void EditorPlay(const FString& Path);
+	void  PanelPlay(const FString& Path);
+	
+	UMaterial* GetEditorMaterial(){return EditorMatetial;}
+	UMaterial* GetPanelMaterial(){return PanelMaterial;}
+	UMaterial* GetOpacityZero(){return OpacityZero;}
+	
+	bool CanPlayvideo(){return CanPlayVideo;}
+	void SetCanPlayVideo(bool bPlay);
+private:
+	bool CanPlayVideo = false;
+	
+	UMediaPlayer* EditorPlayer;
+	UMediaPlayer* PanelPlayer;
+	UMediaTexture* EditorTexture;
+	UMediaTexture* PanelTexture;
+	UMaterial* EditorMatetial;
+	UMaterial* PanelMaterial;
+	
+	
+	UMaterial* OpacityZero;
+
+	void CreateEditorMaterial();
+	void CreatePanelMaterial();
+	void CreateOpacityZeroMaterial();
+};
