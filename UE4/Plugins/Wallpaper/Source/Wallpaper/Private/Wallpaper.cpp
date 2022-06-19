@@ -45,13 +45,13 @@ void FWallPaperModule::StartupModule()
 	ImportWallpaper();
 	InitialEditorStyle();
 	ApplyEditorStyle();
+	CreateWatcher();
 
 
 	GetMutableDefault<UEditorStyleSettings>()->bUseGrid = StyleSettings->EditorUseGrid;
 	ApplyMenuBackGround();
 
 	SetSetting();
-	CreateWatcher();
 	InitialTheme();
 	//GEditor->GetTimerManager()->SetTimerForNextTick([this](){CheckTimer();});
 
@@ -75,9 +75,23 @@ void FWallPaperModule::ShutdownModule()
 	// we call this function before unloading the module.
 	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
 	UToolMenus::UnRegisterStartupCallback(this);
-	UToolMenus::UnregisterOwner(this);
+	
+
+	//ClearCahce
+	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
+	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
+	{
+		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
+	}
+		
+	FString TargetFilePath = PluginsPath/"Content/Cache";
+	if(IFileManager::Get().DirectoryExists(*TargetFilePath))
+	{
+		IFileManager::Get().DeleteDirectory(*(TargetFilePath),false,true);
+	}
+	/*UToolMenus::UnregisterOwner(this);
 	FWallpaperStyle::Shutdown();
-	FWallpaperCommands::Unregister();
+	FWallpaperCommands::Unregister();*/
 }
 
 bool FWallPaperModule::OnSettingModified()
@@ -88,13 +102,11 @@ bool FWallPaperModule::OnSettingModified()
 		bLasyType = StyleSettings->UseWallpaperEngine;
 		TArray<struct FFileChangeData> FileChanges;
 		Reimport(FileChanges);
+		
 	}
-
-
+	CreateWatcher();
 	GetMutableDefault<UEditorStyleSettings>()->bUseGrid = StyleSettings->EditorUseGrid;
 	ApplyMenuBackGround();
-	CreateWatcher();
-
 	CheckTimer();
 	auto& CoreStyles = FCoreStyle::Get();
 	FWindowStyle& WindowsEditor = (FWindowStyle&)CoreStyles.GetWidgetStyle<FWindowStyle>("Window");
@@ -300,6 +312,7 @@ void FWallPaperModule::RegisterMenus()
 				               WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
 				               TArray<struct FFileChangeData> FileChanges;
 				               Reimport(FileChanges);
+								CreateWatcher();
 			               })
 		]
 		+ SHorizontalBox::Slot()
@@ -448,24 +461,30 @@ void FWallPaperModule::CreateWatcher()
 	{
 		DirectoryWatcherHandle.Reset();
 	}
-	
+
 	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>("DirectoryWatcher");
 	IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
 
-	if (DirectoryWatcher && Wallpaperlist.Num() > 0)
+	if (DirectoryWatcher)
 	{
+		const FString Path = (StyleSettings->WallPaperDirectoryPath.Path) + "/steamapps/workshop/content";
+		const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";
 		if (WallpaperPlayer->CanPlayvideo())
 		{
-			const FString Path = (StyleSettings->WallPaperDirectoryPath.Path) + "/steamapps/workshop/content";
-			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(
-				Path, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FWallPaperModule::Reimport), DirectoryWatcherHandle);
+			if (IFileManager::Get().DirectoryExists(*Path))
+			{
+				DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(
+					Path, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FWallPaperModule::Reimport), DirectoryWatcherHandle);
+			}
 		}
 		else
 		{
-			const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";
-			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(FilePath,
-			                                                          IDirectoryWatcher::FDirectoryChanged::CreateRaw(
-				                                                          this, &FWallPaperModule::Reimport), DirectoryWatcherHandle);
+			if (IFileManager::Get().DirectoryExists(*FilePath))
+			{
+				DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(FilePath,
+				                                                          IDirectoryWatcher::FDirectoryChanged::CreateRaw(
+					                                                          this, &FWallPaperModule::Reimport), DirectoryWatcherHandle);
+			}
 		}
 	}
 }
@@ -481,6 +500,7 @@ void FWallPaperModule::Reimport(const TArray<struct FFileChangeData>& FileChange
 	UE_LOG(LogTemp, Log, TEXT("FIle is reimport"))
 	ImportWallpaper();
 	InitialEditorStyle();
+	
 }
 
 
@@ -492,6 +512,7 @@ FText FWallPaperModule::GetPanelComboBoxContent() const
 
 void FWallPaperModule::ImportWallpaper()
 {
+	
 	WallpaperPath.Reset();
 	Wallpaperlist.Reset();
 	LastWallpaperPath = StyleSettings->WallPaperDirectoryPath.Path;
@@ -536,41 +557,59 @@ void FWallPaperModule::ImportPicTheme()
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";
-	//bool FileEx = 
-	if (IFileManager::Get().DirectoryExists(*FilePath))
+	
+	if (!IFileManager::Get().DirectoryExists(*FilePath))
 	{
-		TArray<FString> FinderFile;
-
-		IFileManager::Get().FindFiles(FinderFile, *FilePath,TEXT("*.uasset"));
-		MaxNum = FinderFile.Num();
-		if(MaxNum > 0)
+		IFileManager::Get().MakeDirectory(*FilePath);
+		//AssetRegistryModule.Get().AddPath("/Game/Wallpaper");
+	}
+	
+	TArray<FString> FinderFile;
+	IFileManager::Get().FindFiles(FinderFile, *FilePath,TEXT("*.uasset"));
+	
+	//Find plugins path
+	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
+	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
+	{
+		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
+	}
+		
+	FString TargetFilePath = PluginsPath/"Content/Cache";
+	//clear file
+	if(IFileManager::Get().DirectoryExists(*TargetFilePath))
+	{
+		IFileManager::Get().DeleteDirectory(*(TargetFilePath),false,true);
+	}
+	IFileManager::Get().MakeDirectory(*TargetFilePath);
+	
+	MaxNum = FinderFile.Num();
+	if(MaxNum > 0)
+	{
+		for (FString Result : FinderFile)
 		{
-			for (FString Result : FinderFile)
+			Result = Result.LeftChop(7);
+			FString LoadFilePath = "/Game/Wallpaper" / Result;
+			UTexture* TextureFile = LoadObject<UTexture>(NULL, *LoadFilePath);
+			if (TextureFile) //&&asset.PackagePath == FName("/Game/Wallpaper")
 			{
-				Result = Result.LeftChop(7);
-				FString LoadFilePath = "/Game/Wallpaper" / Result;
-				UTexture* TextureFile = LoadObject<UTexture>(NULL, *LoadFilePath);
-				if (TextureFile) //&&asset.PackagePath == FName("/Game/Wallpaper")
-					{
-					Wallpaperlist.Add(MakeShareable(new FString(Result)));
-					WallpaperPath.Add(MakeShareable(new FString(LoadFilePath)));
-					//UE_LOG(LogTemp,Warning,TEXT("DataNUm:%s"),*asset.PackagePath.ToString());
-					}
+				
+				FString SourceFilePath = FPaths::ProjectContentDir() / "Wallpaper"/Result+".uasset";
+				IFileManager::Get().Copy(*(TargetFilePath/Result+".uasset"), *SourceFilePath);
+
+				
+				Wallpaperlist.Add(MakeShareable(new FString(Result)));
+				WallpaperPath.Add(MakeShareable(new FString("/Wallpaper/Cache"/Result)));
+				//UE_LOG(LogTemp,Warning,TEXT("DataNUm:%s"),*asset.PackagePath.ToString());
 			}
 		}
-		else
-		{
-			Wallpaperlist.Add(MakeShareable(new FString("Default_1")));
-			Wallpaperlist.Add(MakeShareable(new FString("Default_2")));
-			WallpaperPath.Add(MakeShareable(new FString("/Wallpaper/wallhaven-4g62qe")));
-			WallpaperPath.Add(MakeShareable(new FString("/Wallpaper/wallhaven-966dxk")));
-		}
-		
-		
+		IFileManager::Get().DeleteDirectory(*TargetFilePath);
 	}
 	else
 	{
-		AssetRegistryModule.Get().AddPath("/Game/Wallpaper");
+		Wallpaperlist.Add(MakeShareable(new FString("Default_1")));
+		Wallpaperlist.Add(MakeShareable(new FString("Default_2")));
+		WallpaperPath.Add(MakeShareable(new FString("/Wallpaper/wallhaven-4g62qe")));
+		WallpaperPath.Add(MakeShareable(new FString("/Wallpaper/wallhaven-966dxk")));
 	}
 }
 

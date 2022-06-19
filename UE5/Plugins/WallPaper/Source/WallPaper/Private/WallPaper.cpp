@@ -67,6 +67,18 @@ void FWallPaperModule::ShutdownModule()
 	UToolMenus::UnRegisterStartupCallback(this);
 	UToolMenus::UnregisterOwner(this);
 	StyleSettings->ResetStyleColor();
+	//Clear Cache
+	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
+	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
+    	{
+    		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
+    	}
+    		
+    	FString TargetFilePath = PluginsPath/"Content/Cache";
+    	if(IFileManager::Get().DirectoryExists(*TargetFilePath))
+    	{
+    		IFileManager::Get().DeleteDirectory(*(TargetFilePath),false,true);
+    	}
 }
 
 bool FWallPaperModule::OnSettingModified()
@@ -79,7 +91,7 @@ bool FWallPaperModule::OnSettingModified()
 		Reimport(FileChanges);
 		CreateWatcher();
 	}
-	
+
 	GetMutableDefault<UEditorStyleSettings>()->bUseGrid = StyleSettings->EditorUseGrid;
 	ApplyMenuBackGround();
 	ApplyThemeStyle();
@@ -264,6 +276,7 @@ void FWallPaperModule::RegisterMenus()
 				               WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
 				               TArray<struct FFileChangeData> FileChanges;
 				               Reimport(FileChanges);
+								CreateWatcher();
 			               })
 		]
 		+ SHorizontalBox::Slot()
@@ -459,8 +472,8 @@ void FWallPaperModule::ImportWallpaper()
 	if (DefaultRHi->DefaultGraphicsRHI == EDefaultGraphicsRHI::DefaultGraphicsRHI_DX12 && StyleSettings->UseWallpaperEngine)
 	{
 		FMessageDialog::Open(EAppMsgType::Ok,
-							 LOCTEXT("WallpaperTip",
-									 "Please Change RHI to DX11 or vulkan in Project setting -> Platfrom -> Window \n because this version no support play video in dx12"));
+		                     LOCTEXT("WallpaperTip",
+		                             "Please Change RHI to DX11 or vulkan in Project setting -> Platfrom -> Window \n because this version no support play video in dx12"));
 		StyleSettings->UseWallpaperEngine = false;
 		WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
 	}
@@ -506,38 +519,59 @@ void FWallPaperModule::ImportPicTheme()
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";
-	//bool FileEx = 
-	if (IFileManager::Get().DirectoryExists(*FilePath))
+	
+	if (!IFileManager::Get().DirectoryExists(*FilePath))
 	{
-		TArray<FString> FinderFile;
-
-		IFileManager::Get().FindFiles(FinderFile, *FilePath,TEXT("*.uasset"));
-		MaxNum = FinderFile.Num();
-		if (MaxNum > 0)
+		IFileManager::Get().MakeDirectory(*FilePath);
+		//AssetRegistryModule.Get().AddPath("/Game/Wallpaper");
+	}
+	
+	TArray<FString> FinderFile;
+	IFileManager::Get().FindFiles(FinderFile, *FilePath,TEXT("*.uasset"));
+	
+	//Find plugins path
+	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
+	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
+	{
+		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
+	}
+		
+	FString TargetFilePath = PluginsPath/"Content/Cache";
+	//clear file
+	if(IFileManager::Get().DirectoryExists(*TargetFilePath))
+	{
+		IFileManager::Get().DeleteDirectory(*(TargetFilePath),false,true);
+	}
+	IFileManager::Get().MakeDirectory(*TargetFilePath);
+	
+	MaxNum = FinderFile.Num();
+	if(MaxNum > 0)
+	{
+		for (FString Result : FinderFile)
 		{
-			for (FString Result : FinderFile)
-			{
-				Result = Result.LeftChop(7);
-				FString LoadFilePath = "/Game/Wallpaper" / Result;
-				UTexture* TextureFile = LoadObject<UTexture>(NULL, *LoadFilePath);
-				if (TextureFile) //&&asset.PackagePath == FName("/Game/Wallpaper")
+			Result = Result.LeftChop(7);
+			FString LoadFilePath = "/Game/Wallpaper" / Result;
+			UTexture* TextureFile = LoadObject<UTexture>(NULL, *LoadFilePath);
+			if (TextureFile) //&&asset.PackagePath == FName("/Game/Wallpaper")
 				{
-					Wallpaperlist.Add(MakeShareable(new FString(Result)));
-					WallpaperPath.Add(MakeShareable(new FString(LoadFilePath)));
+				
+				FString SourceFilePath = FPaths::ProjectContentDir() / "Wallpaper"/Result+".uasset";
+				IFileManager::Get().Copy(*(TargetFilePath/Result+".uasset"), *SourceFilePath);
+
+				
+				Wallpaperlist.Add(MakeShareable(new FString(Result)));
+				WallpaperPath.Add(MakeShareable(new FString("/Wallpaper/Cache"/Result)));
+				//UE_LOG(LogTemp,Warning,TEXT("DataNUm:%s"),*asset.PackagePath.ToString());
 				}
-			}
 		}
-		else
-		{
-			Wallpaperlist.Add(MakeShareable(new FString("Default_1")));
-			Wallpaperlist.Add(MakeShareable(new FString("Default_2")));
-			WallpaperPath.Add(MakeShareable(new FString("/WallPaper/WallPaperEngine/Backgound/wallhaven-4g62qe")));
-			WallpaperPath.Add(MakeShareable(new FString("/WallPaper/WallPaperEngine/Backgound/wallhaven-966dxk")));
-		}
+		
 	}
 	else
 	{
-		AssetRegistryModule.Get().AddPath("/Game/Wallpaper");
+		Wallpaperlist.Add(MakeShareable(new FString("Default_1")));
+		Wallpaperlist.Add(MakeShareable(new FString("Default_2")));
+		WallpaperPath.Add(MakeShareable(new FString("/WallPaper/WallPaperEngine/Backgound/wallhaven-4g62qe")));
+		WallpaperPath.Add(MakeShareable(new FString("/WallPaper/WallPaperEngine/Backgound/wallhaven-966dxk")));
 	}
 }
 
@@ -552,7 +586,7 @@ TSharedRef<SWidget> FWallPaperModule::HandleGenerateWidget(TSharedPtr<FString> I
 
 int FWallPaperModule::FindWallpaperIndex(TSharedPtr<FString> Item)
 {
-	int Num = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num()),0);
+	int Num = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num()), 0);
 	//找到并且播放
 	for (int32 OptionIndex = 0; OptionIndex < Wallpaperlist.Num(); ++OptionIndex)
 	{
@@ -621,7 +655,7 @@ void FWallPaperModule::HandlePanelSelectionChanged(TSharedPtr<FString> Item)
 				IsPanelVideoMatarial = true;
 			}
 
-			int Num = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num()),0);
+			int Num = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num()), 0);
 			for (int32 OptionIndex = 0; OptionIndex < Wallpaperlist.Num(); ++OptionIndex)
 			{
 				if (Wallpaperlist[OptionIndex] == Item)

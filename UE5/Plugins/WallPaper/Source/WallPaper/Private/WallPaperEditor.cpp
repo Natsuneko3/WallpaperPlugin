@@ -123,7 +123,7 @@ void UWallPaperBrush::CreatePanelMaterial()
 
 void UWallPaperBrush::CreateOpacityZeroMaterial()
 {
-	UPackage* EditorTexturePack = CreatePackage(nullptr, *AssetPath);
+	UPackage* EditorTexturePack = CreatePackage(*AssetPath);
 	OpacityZero = NewObject<UMaterial>(EditorTexturePack, FName("OpacityZero"), RF_MarkAsRootSet);
 	UMaterialExpressionConstant* Comment = NewObject<UMaterialExpressionConstant>(OpacityZero);
 	Comment->R = 0.0f;
