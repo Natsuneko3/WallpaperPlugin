@@ -11,11 +11,11 @@
 
 1.选择你引擎对应版本，把plugins解压到你项目根目录下。
 ### 例如: 
-解压到Plugins文件夹下，要是没有自己新建个即可
-<img src="./assets/%E5%9B%BE%E7%89%871.png"> 
-然后重新编译
-<img src="./assets/%E5%9B%BE%E7%89%876.png" > 
-要是打开引擎要是提醒版本不同，点是就行 
+解压到Plugins文件夹下，要是没有自己新建个即可 \
+<img src="./assets/%E5%9B%BE%E7%89%871.png"> \
+然后重新编译 \
+<img src="./assets/%E5%9B%BE%E7%89%876.png" > \
+要是打开引擎要是提醒版本不同，点是就行 \
 <img src="./assets/%E5%9B%BE%E7%89%872.png" > 
 
 2.把静态图片放在这文件夹下面,上面列表会自动同步列表，要是视频的话，会自动同步WallpaperEngine。 \
