@@ -73,7 +73,7 @@ void FWallPaperModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
-	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
+	/*FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
 	UToolMenus::UnRegisterStartupCallback(this);
 	
 
@@ -88,10 +88,8 @@ void FWallPaperModule::ShutdownModule()
 	if(IFileManager::Get().DirectoryExists(*TargetFilePath))
 	{
 		IFileManager::Get().DeleteDirectory(*(TargetFilePath),false,true);
-	}
-	/*UToolMenus::UnregisterOwner(this);
-	FWallpaperStyle::Shutdown();
-	FWallpaperCommands::Unregister();*/
+	}*/
+	
 }
 
 bool FWallPaperModule::OnSettingModified()
@@ -168,8 +166,9 @@ void FWallPaperModule::InitialEditorStyle()
 				SolidBackground = panel;
 				SolidBackground.TintColor = FLinearColor(FVector(StyleSettings->PanelOpacity));
 			}
-			else
+			else if(LastWallpaperNum != Wallpaperlist.Num())
 			{
+				LastWallpaperNum = Wallpaperlist.Num();
 				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
 				int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
 				HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
@@ -178,8 +177,9 @@ void FWallPaperModule::InitialEditorStyle()
 		}
 		else
 		{
-			if (Wallpaperlist.Num() > 0)
+			if (Wallpaperlist.Num() > 0&&LastWallpaperNum != Wallpaperlist.Num())
 			{
+				LastWallpaperNum = Wallpaperlist.Num();
 				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
 				int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
 				ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
@@ -606,6 +606,7 @@ void FWallPaperModule::ImportPicTheme()
 	}
 	else
 	{
+		LastWallpaperNum = -1;
 		Wallpaperlist.Add(MakeShareable(new FString("Default_1")));
 		Wallpaperlist.Add(MakeShareable(new FString("Default_2")));
 		WallpaperPath.Add(MakeShareable(new FString("/Wallpaper/wallhaven-4g62qe")));

@@ -40,6 +40,7 @@ private:
 	bool IsEditorVideoMatarial = false;
 	bool IsPanelVideoMatarial = false;
 	bool bLasyType;
+	int LastWallpaperNum = 0;
 	UEditorUtilityWidgetBlueprint* EditorWidget;
 	FAssetData Data;
 	TSharedPtr<class FUICommandList> PluginCommands;

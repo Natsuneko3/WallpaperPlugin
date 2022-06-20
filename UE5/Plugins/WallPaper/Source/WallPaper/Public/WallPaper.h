@@ -39,6 +39,7 @@ public:
 private:
 	bool IsEditorVideoMatarial = false;
 	bool IsPanelVideoMatarial = false;
+	int LastWallpaperNum = 0;
 	bool bLasyType;
 	UEditorUtilityWidgetBlueprint* EditorWidget;
 	FAssetData Data;

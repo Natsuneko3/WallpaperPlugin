@@ -153,8 +153,9 @@ void FWallPaperModule::InitialEditorStyle()
 				WindowsEditor.ChildBackgroundBrush = panel;
 				WindowsEditor.ChildBackgroundBrush.TintColor = FLinearColor(FVector(StyleSettings->PanelOpacity));
 			}
-			else
+			else if(LastWallpaperNum != Wallpaperlist.Num())
 			{
+				LastWallpaperNum = Wallpaperlist.Num();
 				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
 				int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
 				HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
@@ -163,8 +164,9 @@ void FWallPaperModule::InitialEditorStyle()
 		}
 		else
 		{
-			if (Wallpaperlist.Num() > 0)
+			if (Wallpaperlist.Num() > 0&&LastWallpaperNum != Wallpaperlist.Num())
 			{
+				LastWallpaperNum = Wallpaperlist.Num();
 				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
 				int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
 				ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
@@ -280,6 +282,7 @@ void FWallPaperModule::RegisterMenus()
 				               WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
 				               TArray<struct FFileChangeData> FileChanges;
 				               Reimport(FileChanges);
+								CreateWatcher();
 			               })
 		]
 		+ SHorizontalBox::Slot()
@@ -568,6 +571,7 @@ void FWallPaperModule::ImportPicTheme()
 	}
 	else
 	{
+		LastWallpaperNum = -1;
 		Wallpaperlist.Add(MakeShareable(new FString("Default_1")));
 		Wallpaperlist.Add(MakeShareable(new FString("Default_2")));
 		WallpaperPath.Add(MakeShareable(new FString("/WallPaper/WallPaperEngine/Backgound/wallhaven-4g62qe")));
