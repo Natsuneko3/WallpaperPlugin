@@ -1,4 +1,5 @@
-﻿#include "WallpaperStyle.h"
+﻿// Copyright Natsu Neko, Inc. All Rights Reserved.
+#include "WallpaperStyle.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "Slate/SlateGameResources.h"

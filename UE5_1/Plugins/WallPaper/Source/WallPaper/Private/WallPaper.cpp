@@ -680,7 +680,7 @@ void FWallPaperModule::HandlePanelSelectionChanged(TSharedPtr<FString> Item)
 	}
 	//UE_LOG(LogTemp, Warning, TEXT("WallpaperPlayer is no valid"))
 }
-
 #undef LOCTEXT_NAMESPACE
 
 IMPLEMENT_MODULE(FWallPaperModule, WallPaper)
+

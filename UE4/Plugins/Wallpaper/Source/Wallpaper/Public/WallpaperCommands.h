@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// Copyright Natsu Neko, Inc. All Rights Reserved.
+#pragma once
 
 
 #include "CoreMinimal.h"

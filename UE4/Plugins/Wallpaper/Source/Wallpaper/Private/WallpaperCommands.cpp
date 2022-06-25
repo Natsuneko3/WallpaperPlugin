@@ -1,4 +1,6 @@
-﻿#include "WallpaperCommands.h"
+﻿// Copyright Natsu Neko, Inc. All Rights Reserved.
+
+#include "WallpaperCommands.h"
 #define LOCTEXT_NAMESPACE "FWallpaperModule"
 
 void FWallpaperCommands::RegisterCommands()
