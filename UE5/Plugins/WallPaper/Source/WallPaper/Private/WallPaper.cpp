@@ -475,7 +475,7 @@ void FWallPaperModule::ImportWallpaper()
 	{
 		FMessageDialog::Open(EAppMsgType::Ok,
 		                     LOCTEXT("WallpaperTip",
-		                             "Please Change RHI to DX11 or vulkan in Project setting -> Platfrom -> Window \n because this version no support play video in dx12"));
+		                             "Please Change RHI to DX11 or vulkan in Project setting -> Platfrom -> Window \n because this version not support play video in dx12"));
 		StyleSettings->UseWallpaperEngine = false;
 		WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
 	}

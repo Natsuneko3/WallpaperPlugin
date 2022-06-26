@@ -48,7 +48,7 @@ public class WallPaper : ModuleRules
 				"UnrealEd",
 				"InputCore",
 				"EditorFramework",
-				"slate",
+				"Slate",
 				"ToolMenus",
 				"WindowsTargetPlatform"
 

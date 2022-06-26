@@ -46,7 +46,7 @@ public class Wallpaper : ModuleRules
 				"UnrealEd",
 				"InputCore",
 				"Blutility",
-				"slate",
+				"Slate",
 				"ToolMenus",
 				"WindowsTargetPlatform",
 				

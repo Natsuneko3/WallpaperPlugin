@@ -18,8 +18,8 @@ class WALLPAPER_API UWallPaperSetting : public UObject
 
 public:
 	
-	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Use Random Theme Color"))
-	bool RandomMainThemeColor;
+	//UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Use Random Theme Color"))
+	bool RandomMainThemeColor = false;
 	
 	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "UseGrid"))
 	bool EditorUseGrid;
