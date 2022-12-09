@@ -42,6 +42,7 @@ void FWallPaperModule::StartupModule()
 	WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
 	bLasyType = StyleSettings->UseWallpaperEngine;
 	FCoreDelegates::OnPostEngineInit.AddRaw(this, &FWallPaperModule::CheckTimer);
+	//FCoreDelegates::OnPostEngineInit.AddRaw(this, &FWallPaperModule::ApplyThemeStyle);
 
 	ImportWallpaper();
 	GetMutableDefault<UEditorStyleSettings>()->bUseGrid = StyleSettings->EditorUseGrid;
@@ -57,6 +58,7 @@ void FWallPaperModule::StartupModule()
 
 	UToolMenus::RegisterStartupCallback(
 		FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FWallPaperModule::RegisterMenus));
+	
 }
 
 void FWallPaperModule::ShutdownModule()
@@ -66,6 +68,7 @@ void FWallPaperModule::ShutdownModule()
 	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
 	UToolMenus::UnRegisterStartupCallback(this);
 	UToolMenus::UnregisterOwner(this);
+	
 	StyleSettings->ResetStyleColor();
 	//Clear Cache
 	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
@@ -139,9 +142,9 @@ void FWallPaperModule::InitialEditorStyle()
 			if (Wallpaperlist.Num() == 0)
 			{
 				UTexture* EditorTexture = LoadObject<UTexture>(
-					NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/wallhaven-966dxk"));
+					NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/Default_1"));
 				UTexture* PanelTexture = LoadObject<UTexture>(
-					NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/wallhaven-4g62qe"));
+					NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/Default_2"));
 				Editor.SetResourceObject(EditorTexture);
 				Editor.SetImageSize(FVector2D(32, 32));
 
@@ -231,7 +234,8 @@ void FWallPaperModule::ApplyThemeStyle()
 {
 	USlateThemeManager* EditorTheme = &USlateThemeManager::Get();
 
-
+	FString File =  FPaths::EngineContentDir() / TEXT("Slate/Themes/Dark.json");
+	//EditorTheme->LoadThemesFromDirectory(File);
 	for (int ColorIndex = 0; ColorIndex < int(EStyleColor::User1); ColorIndex++)
 	{
 		FLinearColor SettingColor = StyleSettings->StyleColors.StyleColors[ColorIndex];
@@ -240,11 +244,16 @@ void FWallPaperModule::ApplyThemeStyle()
 		EditorTheme->SetDefaultColor(CurrentColor, SettingColor);
 		EditorTheme->ResetActiveColorToDefault(CurrentColor);
 	}
+	
 	FGuid NewGuid = EditorTheme->DuplicateActiveTheme();
 	EditorTheme->ApplyTheme(NewGuid);
 	EditorTheme->SetCurrentThemeDisplayName(FText::FromString("WallpaperTheme"));
 	EditorTheme->RemoveTheme(LastUID);
 	LastUID = NewGuid;
+	EditorTheme->ApplyDefaultTheme();
+	EditorTheme->RemoveTheme(LastUID);
+	
+	//EditorTheme->LoadThemes();
 }
 
 

@@ -51,15 +51,9 @@ void UWallPaperBrush::PanelPlay(const FString& Path)
 
 void UWallPaperBrush::SetCanPlayVideo(bool bPlay)
 {
-	UWindowsTargetSettings* DefaultRHi = GetMutableDefault<UWindowsTargetSettings>();
-	if (DefaultRHi->DefaultGraphicsRHI != EDefaultGraphicsRHI::DefaultGraphicsRHI_DX12 )
-	{
+	
 		CanPlayVideo = bPlay;
-	}
-	else
-	{
-		CanPlayVideo = false;
-	}
+	
 }
 
 void UWallPaperBrush::CreateEditorMaterial()

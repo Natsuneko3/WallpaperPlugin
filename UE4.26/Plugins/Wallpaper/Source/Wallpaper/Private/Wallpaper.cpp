@@ -167,7 +167,7 @@ void FWallPaperModule::InitialEditorStyle()
 				SolidBackground = panel;
 				SolidBackground.TintColor = FLinearColor(FVector(StyleSettings->PanelOpacity));
 			}
-			else if(LastWallpaperNum != Wallpaperlist.Num())
+			else 
 			{
 				LastWallpaperNum = Wallpaperlist.Num();
 				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);

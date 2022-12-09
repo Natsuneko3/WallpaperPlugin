@@ -20,6 +20,7 @@ public class WallPaper : ModuleRules
 			new string[]
 			{
 				// ... add other private include paths required here ...
+				
 			}
 		);
 
@@ -30,7 +31,8 @@ public class WallPaper : ModuleRules
 				"Core",
 				"Blutility",
 				"UMGEditor", 
-				"MediaAssets"
+				"MediaAssets",
+				
 
 				// ... add other public dependencies that you statically link with here ...
 			}

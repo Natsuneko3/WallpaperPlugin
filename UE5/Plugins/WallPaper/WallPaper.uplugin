@@ -11,6 +11,7 @@
 	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/d97a7129825f40fea40a994d84f7330a",
 	"SupportURL": "",
 	"EngineVersion": "5.0.0",
+	"PublicKeyToken":null,
 	"CanContainContent": true,
 	"Installed": true,
 	"Modules": [
@@ -19,8 +20,7 @@
 			"Type": "Editor",
 			"LoadingPhase": "PostEngineInit",
 			"WhitelistPlatforms": [
-				"Win64",
-				"Win32"
+				"Win64"
 				]
 		}
 	]

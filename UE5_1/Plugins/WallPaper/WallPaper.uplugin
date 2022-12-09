@@ -4,26 +4,24 @@
 	"VersionName": "0.1",
 	"FriendlyName": "WallPaperCustom",
 	"Description": "Change your UE background with your favorite picture or wallpaper engine`s video",
-	"Category" : "Editor",
+	"Category": "Editor",
 	"CreatedBy": "NatsuNeko",
-	"EngineVersion": "5.1.0",
 	"CreatedByURL": "",
 	"DocsURL": "https://github.com/Natsuneko3/WallpaperEnginePlugin",
 	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/d97a7129825f40fea40a994d84f7330a",
 	"SupportURL": "",
+	"EngineVersion": "5.2.0",
 	"CanContainContent": true,
 	"IsBetaVersion": true,
-	"IsExperimentalVersion": false,
-	"Installed": false,
+	"Installed": true,
 	"Modules": [
 		{
 			"Name": "WallPaper",
 			"Type": "Editor",
 			"LoadingPhase": "PostEngineInit",
-			"WhitelistPlatforms": [
-				"Win64",
-				"Win32"
-				]
+			"PlatformAllowList": [
+				"Win64"
+			]
 		}
 	]
 }

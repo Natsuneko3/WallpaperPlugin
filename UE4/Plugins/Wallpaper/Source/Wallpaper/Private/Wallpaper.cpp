@@ -468,7 +468,7 @@ void FWallPaperModule::CreateWatcher()
 	if (DirectoryWatcher)
 	{
 		const FString Path = (StyleSettings->WallPaperDirectoryPath.Path) + "/steamapps/workshop/content";
-		const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";
+		const FString FilePath = FPaths::ConvertRelativePathToFull("/Wallpaper");//FPaths::ProjectContentDir() / "Wallpaper";
 		if (WallpaperPlayer->CanPlayvideo())
 		{
 			if (IFileManager::Get().DirectoryExists(*Path))

@@ -39,9 +39,8 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Use Wallpaper Engine"))
 	bool UseWallpaperEngine;
 	
-	UPROPERTY(Config, EditAnywhere, Category="Engine Style", meta = (EditCondition ="UseWallpaperEngine", DisplayName = "WallPaper Direction"))
+	UPROPERTY(Config, EditAnywhere, Category="Engine Style", meta = (DisplayName = "WallPaper Direction"))
 	FDirectoryPath  WallPaperDirectoryPath;
-	
 	
 	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Menu Background"))
 	FSlateBrush Menu_Background;
