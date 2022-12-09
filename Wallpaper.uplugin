@@ -10,9 +10,8 @@
 	"DocsURL": "https://github.com/Natsuneko3/WallpaperEnginePlugin",
 	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/d97a7129825f40fea40a994d84f7330a",
 	"SupportURL": "",
-	"EngineVersion": "5.2.0",
+	"EngineVersion": "5.1.0",
 	"CanContainContent": true,
-	"IsBetaVersion": true,
 	"Installed": true,
 	"Modules": [
 		{
