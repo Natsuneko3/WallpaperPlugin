@@ -1,9 +1,9 @@
 c:
-cd C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\UE5_1\Plugins\Wallpaper\Content
+cd C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Content
 IF EXIST "Cache" rd /s /q Cache
 
 cd D:\UE_5.1\Engine\Build\BatchFiles
-call RunUAT.bat BuildPlugin -Plugin="C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\UE5_1\Plugins\Wallpaper\Wallpaper.uplugin" -Package="C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Package\UE5.1\Wallpaper" -Rocket
+call RunUAT.bat BuildPlugin -Plugin="C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Wallpaper.uplugin" -Package="C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Package\UE5.1\Wallpaper" -Rocket
 
 cd C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Package\UE5.1\Wallpaper
 rd /s /q Binaries
