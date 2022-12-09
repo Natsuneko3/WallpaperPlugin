@@ -8,9 +8,9 @@
 #include "Modules/ModuleManager.h"
 #include "ToolMenus.h"
 #include "WallPaperEditor.h"
-#include "WallPaperSetting.h"
 
-
+class UWindowsTargetSettings;
+class UWallPaperSetting;
 
 class FWallPaperModule : public IModuleInterface
 {
@@ -28,11 +28,10 @@ public:
 	void PluginButtonClicked();
 	void ApplyMenuBackGround();
 	void InitialEditorStyle();
-	void InitialTheme();
-	
+	//Dx12不支持播放视频，暂时
 	void ApplyEditorBGWithDx12 (TSharedPtr<FString> Item);
 	void ApplyPanelBGWithDx12 (TSharedPtr<FString> Item);
-	
+	void ApplyThemeStyle();
 	void Reimport(const TArray<struct FFileChangeData>& FileChanges);
 	void RegisterMenus();
 
@@ -40,9 +39,8 @@ public:
 private:
 	bool IsEditorVideoMatarial = false;
 	bool IsPanelVideoMatarial = false;
-	bool bLasyType;
-	bool blastCanWallpaper;
 	int LastWallpaperNum = 0;
+	bool bLasyType;
 	UEditorUtilityWidgetBlueprint* EditorWidget;
 	FAssetData Data;
 	TSharedPtr<class FUICommandList> PluginCommands;
@@ -80,7 +78,7 @@ private:
 	TArray<TSharedPtr<FString>> Wallpaperlist;
 	
 	TArray<TSharedPtr<FString>> WallpaperPath;
-	void ApplyEditorStyle();
+	
 	TSharedPtr<class SComboBox<TSharedPtr<FString>>> WallPaperPanelComboBox;
 	TSharedPtr<SBox> ComboBoxContent;
 };

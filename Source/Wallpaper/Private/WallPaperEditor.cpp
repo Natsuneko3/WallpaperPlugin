@@ -1,9 +1,7 @@
-﻿// Copyright Natsu Neko, Inc. All Rights Reserved.
+// Copyright Natsu Neko, Inc. All Rights Reserved.
 
 
 #include "WallPaperEditor.h"
-#include "WallpaperCommands.h"
-#include "WallpaperStyle.h"
 #include "WindowsTargetSettings.h"
 #include "Components/ComboBoxString.h"
 #include "Interfaces/IPluginManager.h"
@@ -74,22 +72,19 @@ void UWallPaperBrush::CreateEditorMaterial()
 		}
 
 		EditorMatetial = NewObject<UMaterial>(EditorTexturePack, FName("EditorMatetial"), RF_MarkAsRootSet);
-		UMaterialExpressionTextureSample* TextureSample = NewObject<UMaterialExpressionTextureSample>(EditorMatetial);
+		//UMaterialExpressionTextureSample* TextureSample = NewObject<UMaterialExpressionTextureSample>(EditorMatetial);
 		UMaterialExpressionTextureSampleParameter2D* TextureExpression = NewObject<UMaterialExpressionTextureSampleParameter2D>(EditorMatetial);
 		TextureExpression->ParameterName = "Texture";
-
-		EditorTexture =NewObject<UMediaTexture>(EditorTexturePack, FName("EditorTexture"), RF_MarkAsRootSet);
+		
+		EditorTexture = NewObject<UMediaTexture>(EditorTexturePack, FName("EditorTexture"), RF_MarkAsRootSet);
 		EditorTexture->SetDefaultMediaPlayer(EditorPlayer);
 		EditorTexture->UpdateResource();
-		
-		
-		
-		
 		TextureExpression->Texture = EditorTexture;
 		TextureExpression->AutoSetSampleType();
 		EditorMatetial->Expressions.Add(TextureExpression);
 		EditorMatetial->MaterialDomain = EMaterialDomain::MD_UI;
 		EditorMatetial->EmissiveColor.Expression = TextureExpression;
+
 		EditorMatetial->PostEditChange();
 	}
 	
@@ -112,10 +107,9 @@ void UWallPaperBrush::CreatePanelMaterial()
 		
 		PanelMaterial->Expressions.Add(TextureExpression);
 
-		PanelTexture = NewObject<UMediaTexture>(EditorTexturePack, FName("PanelTexture"), RF_MarkAsRootSet);
+		PanelTexture = NewObject<UMediaTexture>(EditorTexturePack, FName("PanelTexture"), RF_MarkAsRootSet);//LoadObject<UMediaTexture>(NULL,TEXT("/WallPaper/WallPaperEngine/UMG/PanelMediaTexture"));
 		PanelTexture->SetDefaultMediaPlayer(PanelPlayer);
 		PanelTexture->UpdateResource();
-		
 		TextureExpression->Texture = PanelTexture;
 		TextureExpression->AutoSetSampleType();
 		PanelMaterial->MaterialDomain = EMaterialDomain::MD_UI;
@@ -136,6 +130,6 @@ void UWallPaperBrush::CreateOpacityZeroMaterial()
 	OpacityZero->Expressions.Add(Comment);
 	OpacityZero->BlendMode = EBlendMode::BLEND_Translucent;
 	OpacityZero->Opacity.Expression = Comment;
-	//OpacityZero->PostEditChange();
+	OpacityZero->PostEditChange();
 }
 #undef LOCTEXT_NAMESPACE

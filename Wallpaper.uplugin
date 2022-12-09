@@ -10,18 +10,18 @@
 	"DocsURL": "https://github.com/Natsuneko3/WallpaperCustomTutorial",
 	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/d97a7129825f40fea40a994d84f7330a",
 	"SupportURL": "",
-	"EngineVersion": "4.27.0",
+	"EngineVersion": "5.0.0",
+	"PublicKeyToken":null,
 	"CanContainContent": true,
 	"Installed": true,
 	"Modules": [
 		{
-			"Name": "Wallpaper",
+			"Name": "WallPaper",
 			"Type": "Editor",
 			"LoadingPhase": "PostEngineInit",
 			"WhitelistPlatforms": [
-				"Win64",
-				"Win32"
-			]
+				"Win64"
+				]
 		}
 	]
 }

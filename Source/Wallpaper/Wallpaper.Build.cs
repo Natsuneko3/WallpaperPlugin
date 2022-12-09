@@ -2,42 +2,44 @@
 
 using UnrealBuildTool;
 
-public class Wallpaper : ModuleRules
+public class WallPaper : ModuleRules
 {
-	public Wallpaper(ReadOnlyTargetRules Target) : base(Target)
+	public WallPaper(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+
 		PublicIncludePaths.AddRange(
-			new string[] {
+			new string[]
+			{
 				// ... add public include paths required here ...
 			}
-			);
-				
-		
+		);
+
+
 		PrivateIncludePaths.AddRange(
-			new string[] {
+			new string[]
+			{
 				// ... add other private include paths required here ...
 			}
-			);
-			
-		
+		);
+
+
 		PublicDependencyModuleNames.AddRange(
-			new string[]
+			new[]
 			{
 				"Core",
-				
+				"Blutility",
 				"UMGEditor", 
 				"MediaAssets"
+
 				// ... add other public dependencies that you statically link with here ...
 			}
-			);
-			
-		
+		);
+
+
 		PrivateDependencyModuleNames.AddRange(
-			new string[]
+			new[]
 			{
-				
 				"CoreUObject",
 				"Projects",
 				"Engine",
@@ -45,22 +47,22 @@ public class Wallpaper : ModuleRules
 				"EditorStyle",
 				"UnrealEd",
 				"InputCore",
-				"Blutility",
+				"EditorFramework",
 				"Slate",
 				"ToolMenus",
-				"WindowsTargetPlatform",
-				
-				
+				"WindowsTargetPlatform"
+
+
 				// ... add private dependencies that you statically link with here ...	
 			}
-			);
-		
-		
+		);
+
+
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{
 				// ... add any modules that your module loads dynamically here ...
 			}
-			);
+		);
 	}
 }
