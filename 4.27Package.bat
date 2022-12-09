@@ -5,8 +5,8 @@ cd E:\UE_4.27\Engine\Build\BatchFiles
 call RunUAT.bat BuildPlugin -Plugin="C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Wallpaper.uplugin" -Package="C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Package\UE4.27\Wallpaper" -Rocket
 c:
 cd C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Package\UE4.27\Wallpaper
-rd /s /q Binaries
-rd /s /q Intermediate
+IF EXIST "Binaries" rd /s /q Binaries
+IF EXIST "Intermediate" rd /s /q Intermediate
 cd ..\
 IF EXIST "Ue4.27Plugins.zip" del "Ue4.27Plugins.zip"
 7z.exe a -r ..\Ue4.27Plugins.zip
