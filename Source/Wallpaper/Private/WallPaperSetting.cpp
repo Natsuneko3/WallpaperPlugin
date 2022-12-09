@@ -1,8 +1,8 @@
-﻿// Copyright Natsu Neko, Inc. All Rights Reserved.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "WallPaperSetting.h"
-#include "Classes/EditorStyleSettings.h"
+#include "Settings/EditorStyleSettings.h"
 
 UWallPaperSetting::UWallPaperSetting()
 {

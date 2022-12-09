@@ -1,4 +1,4 @@
-// Copyright Natsu Neko, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,7 @@
 #include "Modules/ModuleManager.h"
 #include "ToolMenus.h"
 #include "WallPaperEditor.h"
+
 
 class UWindowsTargetSettings;
 class UWallPaperSetting;
@@ -39,8 +40,8 @@ public:
 private:
 	bool IsEditorVideoMatarial = false;
 	bool IsPanelVideoMatarial = false;
-	int LastWallpaperNum = 0;
 	bool bLasyType;
+	int LastWallpaperNum = 0;
 	UEditorUtilityWidgetBlueprint* EditorWidget;
 	FAssetData Data;
 	TSharedPtr<class FUICommandList> PluginCommands;
