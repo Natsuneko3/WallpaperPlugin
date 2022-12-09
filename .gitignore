@@ -1,6 +1,3 @@
-4.26Package.bat
-4.27Package.bat
-5.0Package.bat
-5.1Package.bat
-UEMain
-7zrun.bat
+Binaries/*
+Intermediate/*
+
