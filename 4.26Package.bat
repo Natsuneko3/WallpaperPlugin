@@ -1,8 +1,8 @@
-cd C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\UE4\Plugins\Wallpaper\Content
+cd C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Content
 IF EXIST "Cache" rd /s /q Cache
-V:
-cd V:\UnrealEngine-4.26\Engine\Build\BatchFiles
-call RunUAT.bat BuildPlugin -Plugin="C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\UE4.26\Plugins\Wallpaper\Wallpaper.uplugin" -Package="C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Package\UE4.26\Wallpaper" -Rocket
+D:
+cd D:\UE_4.26\Engine\Build\BatchFiles
+call RunUAT.bat BuildPlugin -Plugin="C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Wallpaper.uplugin" -Package="C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Package\UE4.26\Wallpaper" -Rocket
 c:
 cd C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Package\UE4.26\Wallpaper
 rd /s /q Binaries
