@@ -4,9 +4,9 @@
 这是一个可以改变你ue界面的小插件，慢慢更新 \
 下载地址：\
 [UE4.26](https://github.com/Natsuneko3/WallpaperEnginePlugin/releases/download/V1.0/Ue4.26Plugins.zip) \
-[UE4.27](https://github.com/Natsuneko3/WallpaperEnginePlugin/releases/download/V5.0/Ue4.27Plugins.zip) \
-[UE5.0](https://github.com/Natsuneko3/WallpaperEnginePlugin/releases/download/V5.0/Ue5Plugins.zip) \
-[UE5.1](https://github.com/Natsuneko3/WallpaperEnginePlugin/releases/download/V5.0/UE5.1Plugins.zip) 
+[UE4.27](https://github.com/Natsuneko3/WallpaperEnginePlugin/releases/download/V1.0/Ue4.27Plugins.zip) \
+[UE5.0](https://github.com/Natsuneko3/WallpaperEnginePlugin/releases/download/V1.0/Ue5Plugins.zip) \
+[UE5.1](https://github.com/Natsuneko3/WallpaperEnginePlugin/releases/download/V1.0/UE5.1Plugins.zip) 
 
 ## 使用方法
 
