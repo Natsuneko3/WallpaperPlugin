@@ -13,3 +13,4 @@ IF EXIST "Ue5Plugins.zip" del "Ue5Plugins.zip"
 7z.exe a -r ..\Ue5Plugins.zip
 cd ..\ 
 rd /s /q "UE5.0"
+
