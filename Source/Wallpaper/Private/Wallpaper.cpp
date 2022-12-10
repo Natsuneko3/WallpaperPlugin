@@ -73,9 +73,9 @@ void FWallPaperModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
-	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
-	UToolMenus::UnRegisterStartupCallback(this);
-	UE_LOG(LogTemp,Log,TEXT("shutdown moud"));
+	//FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
+	//UToolMenus::UnRegisterStartupCallback(this);
+	//UE_LOG(LogTemp,Log,TEXT("shutdown moud"));
 	
 
 	//ClearCahce
