@@ -1,7 +1,7 @@
 cd C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Content
 IF EXIST "Cache" rd /s /q Cache
-e:
-cd E:\UE_4.27\Engine\Build\BatchFiles
+d:
+cd D:\Epic Games\UE_4.27\Engine\Build\BatchFiles
 call RunUAT.bat BuildPlugin -Plugin="C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Wallpaper.uplugin" -Package="C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Package\UE4.27\Wallpaper" -Rocket
 c:
 cd C:\Users\Neko\OneDrive\UePlugins\WallpaperEnginePlugin\Package\UE4.27\Wallpaper

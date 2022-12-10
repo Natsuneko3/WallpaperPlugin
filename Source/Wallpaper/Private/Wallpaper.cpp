@@ -73,12 +73,13 @@ void FWallPaperModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
-	/*FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
+	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
 	UToolMenus::UnRegisterStartupCallback(this);
+	UE_LOG(LogTemp,Log,TEXT("shutdown moud"));
 	
 
 	//ClearCahce
-	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
+	/*FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
 	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
 	{
 		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
@@ -468,7 +469,7 @@ void FWallPaperModule::CreateWatcher()
 	if (DirectoryWatcher)
 	{
 		const FString Path = (StyleSettings->WallPaperDirectoryPath.Path) + "/steamapps/workshop/content";
-		const FString FilePath = FPaths::ConvertRelativePathToFull("/Wallpaper");//FPaths::ProjectContentDir() / "Wallpaper";
+		const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";//FPaths::ProjectContentDir() / "Wallpaper";
 		if (WallpaperPlayer->CanPlayvideo())
 		{
 			if (IFileManager::Get().DirectoryExists(*Path))
