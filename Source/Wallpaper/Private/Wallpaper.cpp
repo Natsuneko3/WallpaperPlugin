@@ -610,8 +610,8 @@ void FWallPaperModule::ImportPicTheme()
 		LastWallpaperNum = -1;
 		Wallpaperlist.Add(MakeShareable(new FString("Default_1")));
 		Wallpaperlist.Add(MakeShareable(new FString("Default_2")));
-		WallpaperPath.Add(MakeShareable(new FString("/Wallpaper/wallhaven-4g62qe")));
-		WallpaperPath.Add(MakeShareable(new FString("/Wallpaper/wallhaven-966dxk")));
+		WallpaperPath.Add(MakeShareable(new FString("/Engine/EngineResources/Black_Low.Black")));
+		WallpaperPath.Add(MakeShareable(new FString("/Engine/EngineResources/Black_Low.Black")));
 	}
 }
 
