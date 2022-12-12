@@ -7,6 +7,6 @@
 /IGNORE:4221
 /NODEFAULTLIB
 "..\Intermediate\Build\Win64\UnrealEditor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h.obj"
-"..\Plugins\Editor\WallPaper\Intermediate\Build\Win64\UnrealEditor\Development\WallPaper\Module.WallPaper.cpp.obj"
+"..\Plugins\Editor\Wallpaper\Intermediate\Build\Win64\UnrealEditor\Development\WallPaper\Module.WallPaper.cpp.obj"
 "..\Intermediate\Build\Win64\UnrealEditor\Development\Default.rc2.res"
-/OUT:"..\Plugins\Editor\WallPaper\Intermediate\Build\Win64\UnrealEditor\Development\WallPaper\UnrealEditor-WallPaper.lib"
+/OUT:"..\Plugins\Editor\Wallpaper\Intermediate\Build\Win64\UnrealEditor\Development\WallPaper\UnrealEditor-WallPaper.lib"

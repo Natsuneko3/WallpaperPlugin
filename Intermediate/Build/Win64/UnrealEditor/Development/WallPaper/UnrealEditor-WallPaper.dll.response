@@ -34,7 +34,7 @@
 /NODEFAULTLIB:"LIBCPD"
 /FUNCTIONPADMIN:6
 "..\Intermediate\Build\Win64\UnrealEditor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h.obj"
-"..\Plugins\Editor\WallPaper\Intermediate\Build\Win64\UnrealEditor\Development\WallPaper\Module.WallPaper.cpp.obj"
+"..\Plugins\Editor\Wallpaper\Intermediate\Build\Win64\UnrealEditor\Development\WallPaper\Module.WallPaper.cpp.obj"
 "..\Intermediate\Build\Win64\UnrealEditor\Development\Default.rc2.res"
 "..\Intermediate\Build\Win64\UnrealEditor\Development\CoreUObject\UnrealEditor-CoreUObject.lib"
 "..\Intermediate\Build\Win64\UnrealEditor\Development\Projects\UnrealEditor-Projects.lib"
@@ -74,7 +74,7 @@
 "setupapi.lib"
 "dwmapi.lib"
 "imm32.lib"
-/OUT:"..\Plugins\Editor\WallPaper\Binaries\Win64\UnrealEditor-WallPaper.dll"
-/IMPLIB:"..\Plugins\Editor\WallPaper\Intermediate\Build\Win64\UnrealEditor\Development\WallPaper\UnrealEditor-WallPaper.suppressed.lib"
-/PDB:"..\Plugins\Editor\WallPaper\Binaries\Win64\UnrealEditor-WallPaper.pdb"
+/OUT:"..\Plugins\Editor\Wallpaper\Binaries\Win64\UnrealEditor-WallPaper.dll"
+/IMPLIB:"..\Plugins\Editor\Wallpaper\Intermediate\Build\Win64\UnrealEditor\Development\WallPaper\UnrealEditor-WallPaper.suppressed.lib"
+/PDB:"..\Plugins\Editor\Wallpaper\Binaries\Win64\UnrealEditor-WallPaper.pdb"
 /ignore:4078
