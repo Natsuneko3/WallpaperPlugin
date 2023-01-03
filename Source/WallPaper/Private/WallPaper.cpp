@@ -22,6 +22,7 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 
 #include "LevelEditor.h"
+#include "LevelEditorActions.h"
 #include "RenderGraphResources.h"
 
 
@@ -31,6 +32,25 @@
 
 #define LOCTEXT_NAMESPACE "FWallPaperModule"
 
+class WallpaperCommands:public TCommands<WallpaperCommands>
+{
+public:
+	WallpaperCommands()
+		: TCommands<WallpaperCommands>(
+			"WallpaperUICommand",
+			NSLOCTEXT("Contexts", "WallpaperUICommands", "Wallpaper UI Command"),
+			NAME_None, FAppStyle::GetAppStyleSetName()
+		)
+	{ }
+
+	virtual void RegisterCommands() override
+	{
+		UI_COMMAND(Excution, "Excution", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift|EModifierKey::Control,EKeys::C));
+		//UI_COMMAND( Excution, "Excution", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord() );
+	}
+	TSharedPtr<FUICommandInfo> Excution;
+	
+};
 
 void FWallPaperModule::StartupModule()
 {
@@ -53,7 +73,35 @@ void FWallPaperModule::StartupModule()
 	SetSetting();
 	CreateWatcher();
 
+	WallpaperCommands::Register();
+	FLevelEditorModule& LevelEditorModule = FModuleManager::Get().LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+	
+	TSharedRef<FUICommandList> CommandList = LevelEditorModule.GetGlobalLevelEditorActions();
+	//CommandList->MapAction(WallpaperCommands::Get().Excution,FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::NewLevel));
+	CommandList->MapAction(WallpaperCommands::Get().Excution, 
+		FExecuteAction::CreateLambda([this]
+		{
+			if(WallpaperPlayer->CanPlayvideo())
+			{
+				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+				int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
+				HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
+				HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
+			}
+			else
+			{
+				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+			int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
+			ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
+			ApplyPanelBGWithDx12(Wallpaperlist[RandomPanel]);
+			}
+			
+		}),
+		FCanExecuteAction()
+	);
+
 	//GEditor->GetTimerManager()->SetTimerForNextTick([this](){CheckTimer();});
+	
 
 
 	UToolMenus::RegisterStartupCallback(
@@ -68,7 +116,7 @@ void FWallPaperModule::ShutdownModule()
 	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
 	UToolMenus::UnRegisterStartupCallback(this);
 	UToolMenus::UnregisterOwner(this);
-	
+	WallpaperCommands::Unregister();
 	StyleSettings->ResetStyleColor();
 	//Clear Cache
 	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
@@ -261,6 +309,16 @@ void FWallPaperModule::RegisterMenus()
 {
 	// Owner will be used for cleanup in call to UToolMenus::UnregisterOwner
 	FToolMenuOwnerScoped OwnerScoped(this);
+	/*FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
+	TSharedRef<  FUICommandList > CommandBindings = LevelEditorModule.GetGlobalLevelEditorActions();
+	
+	
+	CommandBindings->MapAction(WallpaperCommands::Get().Excution,
+		FExecuteAction::CreateStatic(&FWallPaperModule::ImportPicTheme),
+		FCanExecuteAction()
+		);*/
+	
+	
 
 
 	TSharedRef<SWidget> WallpaperWidget = SNew(SHorizontalBox)
@@ -404,6 +462,7 @@ void FWallPaperModule::SetSetting()
 
 void FWallPaperModule::CheckTimer()
 {
+	
 	FTimerManager& timerManager = GEditor->GetTimerManager().Get();
 	if (handle.IsValid())
 	{

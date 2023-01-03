@@ -52,6 +52,7 @@ public class WallPaper : ModuleRules
 				"EditorFramework",
 				"Slate",
 				"ToolMenus",
+				"LevelEditor"
 				
 
 

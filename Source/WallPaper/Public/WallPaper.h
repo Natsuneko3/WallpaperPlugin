@@ -13,6 +13,7 @@
 class UWindowsTargetSettings;
 class UWallPaperSetting;
 
+
 class FWallPaperModule : public IModuleInterface
 {
 	TSharedPtr<ISettingsSection> SettingS;
