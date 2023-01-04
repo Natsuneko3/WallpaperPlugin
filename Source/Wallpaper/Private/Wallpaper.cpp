@@ -31,6 +31,26 @@
 
 #define LOCTEXT_NAMESPACE "FWallPaperModule"
 
+class WallpaperCommands:public TCommands<WallpaperCommands>
+{
+public:
+	WallpaperCommands()
+		: TCommands<WallpaperCommands>(
+			"WallpaperUICommand",
+			NSLOCTEXT("Contexts", "WallpaperUI", "Wallpaper UI"),
+			NAME_None, FAppStyle::GetAppStyleSetName()
+		)
+	{ }
+
+	virtual void RegisterCommands() override
+	{
+		UI_COMMAND(Excution, "ChangeWallpaper", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift|EModifierKey::Control,EKeys::C));
+		//UI_COMMAND( Excution, "Excution", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord() );
+	}
+	TSharedPtr<FUICommandInfo> Excution;
+	
+};
+
 
 void FWallPaperModule::StartupModule()
 {
@@ -54,6 +74,35 @@ void FWallPaperModule::StartupModule()
 	CreateWatcher();
 
 	//GEditor->GetTimerManager()->SetTimerForNextTick([this](){CheckTimer();});
+	WallpaperCommands::Register();
+	FLevelEditorModule& LevelEditorModule = FModuleManager::Get().LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+	
+	TSharedRef<FUICommandList> CommandList = LevelEditorModule.GetGlobalLevelEditorActions();
+	//CommandList->MapAction(WallpaperCommands::Get().Excution,FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::NewLevel));
+	CommandList->MapAction(WallpaperCommands::Get().Excution, 
+		FExecuteAction::CreateLambda([this]
+		{
+			if(Wallpaperlist.Num()>2)
+			{
+				if(WallpaperPlayer->CanPlayvideo())
+				{
+					int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+					int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
+					HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
+					HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
+				}
+				else
+				{
+					int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+					int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
+					ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
+					ApplyPanelBGWithDx12(Wallpaperlist[RandomPanel]);
+				}
+			}
+		}),
+		FCanExecuteAction()
+	);
+
 
 
 	UToolMenus::RegisterStartupCallback(
