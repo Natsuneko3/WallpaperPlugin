@@ -39,18 +39,20 @@ public:
 	WallpaperCommands()
 		: TCommands<WallpaperCommands>(
 			"WallpaperUICommand",
-			NSLOCTEXT("Contexts", "WallpaperUICommands", "Wallpaper UI Command"),
+			NSLOCTEXT("Contexts", "WallpaperUI", "Wallpaper UI"),
 			NAME_None, FAppStyle::GetAppStyleSetName()
 		)
 	{ }
 
 	virtual void RegisterCommands() override
 	{
-		UI_COMMAND(Excution, "Excution", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift|EModifierKey::Control,EKeys::C));
+		UI_COMMAND(Excution, "ChangeWallpaper", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift|EModifierKey::Control,EKeys::C));
 		//UI_COMMAND( Excution, "Excution", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord() );
 	}
 	TSharedPtr<FUICommandInfo> Excution;
+	
 };
+
 
 void FWallPaperModule::StartupModule()
 {
