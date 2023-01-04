@@ -98,9 +98,6 @@ void FWallPaperModule::StartupModule()
 				ApplyPanelBGWithDx12(Wallpaperlist[RandomPanel]);
 				}
 			}
-			
-			
-			
 		}),
 		FCanExecuteAction()
 	);
