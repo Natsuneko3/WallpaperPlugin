@@ -33,6 +33,25 @@
 #define LOCTEXT_NAMESPACE "FWallPaperModule"
 
 
+class WallpaperCommands:public TCommands<WallpaperCommands>
+{
+public:
+	WallpaperCommands()
+		: TCommands<WallpaperCommands>(
+			"WallpaperUICommand",
+			NSLOCTEXT("Contexts", "WallpaperUICommands", "Wallpaper UI Command"),
+			NAME_None, FAppStyle::GetAppStyleSetName()
+		)
+	{ }
+
+	virtual void RegisterCommands() override
+	{
+		UI_COMMAND(Excution, "Excution", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift|EModifierKey::Control,EKeys::C));
+		//UI_COMMAND( Excution, "Excution", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord() );
+	}
+	TSharedPtr<FUICommandInfo> Excution;
+};
+
 void FWallPaperModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
@@ -54,6 +73,36 @@ void FWallPaperModule::StartupModule()
 	CreateWatcher();
 
 	//GEditor->GetTimerManager()->SetTimerForNextTick([this](){CheckTimer();});
+	WallpaperCommands::Register();
+	FLevelEditorModule& LevelEditorModule = FModuleManager::Get().LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+	
+	TSharedRef<FUICommandList> CommandList = LevelEditorModule.GetGlobalLevelEditorActions();
+	//CommandList->MapAction(WallpaperCommands::Get().Excution,FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::NewLevel));
+	CommandList->MapAction(WallpaperCommands::Get().Excution, 
+		FExecuteAction::CreateLambda([this]
+		{
+			if(Wallpaperlist.Num()>2)
+			{
+				if(WallpaperPlayer->CanPlayvideo())
+				{
+					int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+					int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
+					HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
+					HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
+				}
+				else
+				{
+					int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+				int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
+				ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
+				ApplyPanelBGWithDx12(Wallpaperlist[RandomPanel]);
+				}
+			}
+		}),
+		FCanExecuteAction()
+	);
+
+
 
 
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FWallPaperModule::RegisterMenus));
@@ -63,12 +112,12 @@ void FWallPaperModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
-	/*FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
+	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
 	UToolMenus::UnRegisterStartupCallback(this);
-	UToolMenus::UnregisterOwner(this);*/
+	UToolMenus::UnregisterOwner(this);
 	StyleSettings->ResetStyleColor();
 	//Clear Cache
-	/*FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
+	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
 	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
     	{
     		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
@@ -78,7 +127,7 @@ void FWallPaperModule::ShutdownModule()
     	if(IFileManager::Get().DirectoryExists(*TargetFilePath))
     	{
     		IFileManager::Get().DeleteDirectory(*(TargetFilePath),false,true);
-    	}*/
+    	}
 }
 
 bool FWallPaperModule::OnSettingModified()
