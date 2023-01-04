@@ -20,7 +20,7 @@ void UWallPaperSetting::InitCoreStyle()
 	/*Windows_Chlid_Backgroud = FCoreStyle::Get().GetWidgetStyle<FWindowStyle>("Window").ChildBackgroundBrush;
 	Windows_Chlid_Backgroud.TintColor = FColor(1, 1, 1, 1);*/
 	FSlateBrush MenuBrush;
-	UTexture* MenuBrushBackGround = LoadObject<UTexture>(NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/wallhaven-966dxk"));
+	UTexture* MenuBrushBackGround = LoadObject<UTexture>(NULL,TEXT("/Engine/EngineResources/Black_Low.Black"));
 	MenuBrush.SetResourceObject(MenuBrushBackGround);
 	Menu_Background = MenuBrush;
 	Menu_Background.TintColor = FLinearColor(0.2, 0.2, 0.2, 1);

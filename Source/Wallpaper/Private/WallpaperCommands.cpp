@@ -5,7 +5,7 @@
 
 void FWallpaperCommands::RegisterCommands()
 {
-	UI_COMMAND(PluginAction, "Wallpaper", "Execute Wallpaper action", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(Excution, "ChangeWallpaper", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift|EModifierKey::Control,EKeys::C));
 }
 
 #undef LOCTEXT_NAMESPACE
