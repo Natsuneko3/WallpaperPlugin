@@ -81,20 +81,25 @@ void FWallPaperModule::StartupModule()
 	CommandList->MapAction(WallpaperCommands::Get().Excution, 
 		FExecuteAction::CreateLambda([this]
 		{
-			if(WallpaperPlayer->CanPlayvideo())
+			if(Wallpaperlist.Num()>2)
 			{
-				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+				if(WallpaperPlayer->CanPlayvideo())
+				{
+					int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+					int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
+					HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
+					HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
+				}
+				else
+				{
+					int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
 				int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
-				HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
-				HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
+				ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
+				ApplyPanelBGWithDx12(Wallpaperlist[RandomPanel]);
+				}
 			}
-			else
-			{
-				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
-			int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
-			ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
-			ApplyPanelBGWithDx12(Wallpaperlist[RandomPanel]);
-			}
+			
+			
 			
 		}),
 		FCanExecuteAction()
