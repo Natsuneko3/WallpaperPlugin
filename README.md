@@ -1,6 +1,10 @@
 
 # [WallpaperEnginePlugin](https://https://github.com/natsupora/WallpaperEnginePlugin)
 
+# V1.1
+- 加了快捷键以便一键切换，再Editor settting - keybroad - wallpaper 可以找到，默认shift + ctrl + c
+___
+
 这是一个可以改变你ue界面的小插件，慢慢更新 \
 下载地址：\
 [UE4.26](https://github.com/Natsuneko3/WallpaperEnginePlugin/releases/download/V1.1/Ue4.26Plugins.zip) \
