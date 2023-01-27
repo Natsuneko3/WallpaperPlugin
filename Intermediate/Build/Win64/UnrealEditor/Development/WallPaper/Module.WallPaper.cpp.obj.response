@@ -1,4 +1,4 @@
-..\Plugins\Editor\Wallpaper\Intermediate\Build\Win64\UnrealEditor\Development\WallPaper\Module.WallPaper.cpp
+..\Plugins\Editor\Wallpaper\Intermediate\Build\Win64\UnrealEditor\Development\Wallpaper\Module.Wallpaper.cpp
 /I .
 /I ..\Plugins\Editor\Wallpaper\Source\WallPaper\Private
 /I ..\Intermediate\Build\Win64\UnrealEditor\Inc\CoreUObject\UHT
@@ -306,11 +306,11 @@
 /I "C:\Program Files (x86)\Windows Kits\10\include\10.0.19041.0\um"
 /I "C:\Program Files (x86)\Windows Kits\10\include\10.0.19041.0\winrt"
 /FI"..\Intermediate\Build\Win64\UnrealEditor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h"
-/FI"..\Plugins\Editor\Wallpaper\Intermediate\Build\Win64\UnrealEditor\Development\WallPaper\Definitions.WallPaper.h"
+/FI"..\Plugins\Editor\Wallpaper\Intermediate\Build\Win64\UnrealEditor\Development\Wallpaper\Definitions.Wallpaper.h"
 /Yu"..\Intermediate\Build\Win64\UnrealEditor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h"
 /Fp"..\Intermediate\Build\Win64\UnrealEditor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h.pch"
-/Fo"..\Plugins\Editor\Wallpaper\Intermediate\Build\Win64\UnrealEditor\Development\WallPaper\Module.WallPaper.cpp.obj"
-/sourceDependencies ..\Plugins\Editor\Wallpaper\Intermediate\Build\Win64\UnrealEditor\Development\WallPaper\Module.WallPaper.cpp.dep.json
+/Fo"..\Plugins\Editor\Wallpaper\Intermediate\Build\Win64\UnrealEditor\Development\Wallpaper\Module.Wallpaper.cpp.obj"
+/sourceDependencies ..\Plugins\Editor\Wallpaper\Intermediate\Build\Win64\UnrealEditor\Development\Wallpaper\Module.Wallpaper.cpp.dep.json
 /Zc:inline
 /nologo
 /Oi
