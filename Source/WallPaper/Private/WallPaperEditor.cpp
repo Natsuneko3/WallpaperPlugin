@@ -2,6 +2,8 @@
 
 
 #include "WallPaperEditor.h"
+
+#include "MaterialDomain.h"
 #include "Components/ComboBoxString.h"
 #include "Interfaces/IPluginManager.h"
 #include "Materials/MaterialExpressionComment.h"
