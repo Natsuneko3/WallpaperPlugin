@@ -1,4 +1,4 @@
-﻿// Copyright Natsu Neko, Inc. All Rights Reserved.
+﻿// Copyright 2023 Natsu Neko, Inc. All Rights Reserved.
 #include "WallpaperStyle.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Styling/SlateStyleRegistry.h"

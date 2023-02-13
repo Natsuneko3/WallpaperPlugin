@@ -1,4 +1,5 @@
-﻿#include  "WallpaperCustomEditor.h"
+﻿// Copyright 2023 Natsu Neko, Inc. All Rights Reserved.
+#include  "WallpaperCustomEditor.h"
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
