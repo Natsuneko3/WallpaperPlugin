@@ -1,4 +1,4 @@
-// Copyright Natsu Neko, Inc. All Rights Reserved.
+// Copyright 2023 Natsu Neko, Inc. All Rights Reserved.
 
 #include "Wallpaper.h"
 
