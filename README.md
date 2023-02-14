@@ -7,10 +7,10 @@ ___
 
 这是一个可以改变你ue界面的小插件，慢慢更新 \
 下载地址：\
-[UE4.26](https://github.com/Natsuneko3/WallpaperEnginePlugin/releases/download/V1.1/Ue4.26Plugins.zip) \
-[UE4.27](https://github.com/Natsuneko3/WallpaperEnginePlugin/releases/download/V1.1/Ue4.27Plugins.zip) \
-[UE5.0](https://github.com/Natsuneko3/WallpaperEnginePlugin/releases/download/V1.1/Ue5Plugins.zip) \
-[UE5.1](https://github.com/Natsuneko3/WallpaperEnginePlugin/releases/download/V1.1/UE5.1Plugins.zip) 
+[UE4.26](https://1drv.ms/u/s!AvyznzGW09kP8v5toj33IgTgWNSTig?e=vVsnf0) \
+[UE4.27](https://1drv.ms/u/s!AvyznzGW09kP8v5AtHEQBxZE5gpbxQ?e=ZgK1Gz) \
+[UE5.0](https://1drv.ms/u/s!AvyznzGW09kP84V6DMXbVUdSMrS_zg?e=1Y2ps8) \
+[UE5.1](https://1drv.ms/u/s!AvyznzGW09kP84V5NtkQtNu9Yb8rRw?e=gufzzE) 
 
 ## 使用方法
 
