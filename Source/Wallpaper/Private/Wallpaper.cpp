@@ -589,6 +589,7 @@ void FWallPaperModule::ImportPicTheme()
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";
 	FString PluginsPath = FPaths::ProjectPluginsDir()/"WallpaperPlugin";
+	
 	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
 	{
 		PluginsPath = FPaths::EnginePluginsDir()/"Marketplace/WallpaperPlugin";
