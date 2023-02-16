@@ -572,10 +572,14 @@ void FWallPaperModule::ImportPicTheme()
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";
-	
+	FString PluginsPath = FPaths::ProjectPluginsDir()/"WallpaperPlugin";
+	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
+	{
+		PluginsPath = FPaths::EnginePluginsDir()/"Marketplace"/"WallpaperPlugin";
+	}
 	if (!IFileManager::Get().DirectoryExists(*FilePath))
 	{
-		IFileManager::Get().MakeDirectory(*FilePath);
+		IFileManager::Get().MakeDirectory(*PluginsPath);
 		//AssetRegistryModule.Get().AddPath("/Game/Wallpaper");
 	}
 	
@@ -583,11 +587,7 @@ void FWallPaperModule::ImportPicTheme()
 	IFileManager::Get().FindFiles(FinderFile, *FilePath,TEXT("*.uasset"));
 	
 	//Find plugins path
-	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
-	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
-	{
-		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
-	}
+	
 		
 	FString TargetFilePath = PluginsPath/"Content/Cache";
 	//clear file
@@ -610,7 +610,7 @@ void FWallPaperModule::ImportPicTheme()
 				
 				FString SourceFilePath = FPaths::ProjectContentDir() / "Wallpaper"/Result+".uasset";
 				IFileManager::Get().Copy(*(TargetFilePath/Result+".uasset"), *SourceFilePath);
-
+				
 				
 				Wallpaperlist.Add(MakeShareable(new FString(Result)));
 				WallpaperPath.Add(MakeShareable(new FString("/Wallpaper/Cache"/Result)));
