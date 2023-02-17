@@ -108,10 +108,10 @@ void FWallPaperModule::ShutdownModule()
 	
 
 	//ClearCahce
-	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
+	FString PluginsPath = FPaths::ProjectPluginsDir()/"WallpaperPlugin";
 	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
 	{
-		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
+		PluginsPath = FPaths::EnginePluginsDir()/"Marketplace/WallpaperPlugin";
 	}
 		
 	FString TargetFilePath = PluginsPath/"Content/Cache";
@@ -163,7 +163,7 @@ void FWallPaperModule::InitialEditorStyle()
 	if (!IsValid(StyleSettings->Menu_Background.GetResourceObject()))
 	{
 		FSlateBrush ChildBackGround;
-		UTexture* ChildBackTexture = LoadObject<UTexture>(NULL,TEXT("/Wallpaper/wallhaven-4g62qe"));
+		UTexture* ChildBackTexture = LoadObject<UTexture>(NULL,TEXT("/Engine/EngineResources/Black_Low.Black"));
 		ChildBackGround.SetResourceObject(ChildBackTexture);
 		ChildBackGround.SetImageSize(FVector2D(32, 32));
 
@@ -182,8 +182,8 @@ void FWallPaperModule::InitialEditorStyle()
 		{
 			if (Wallpaperlist.Num() == 0)
 			{
-				UTexture* EditorTexture = LoadObject<UTexture>(NULL,TEXT("/Wallpaper/wallhaven-966dxk"));
-				UTexture* PanelTexture = LoadObject<UTexture>(NULL,TEXT("/Wallpaper/wallhaven-4g62qe"));
+				UTexture* EditorTexture = LoadObject<UTexture>(NULL,TEXT("/Engine/EngineResources/Black_Low.Black"));
+				UTexture* PanelTexture = LoadObject<UTexture>(NULL,TEXT("/Engine/EngineResources/Black_Low.Black"));
 				Editor.SetResourceObject(EditorTexture);
 				Editor.SetImageSize(FVector2D(32, 32));
 
