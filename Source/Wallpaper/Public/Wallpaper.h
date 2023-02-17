@@ -1,4 +1,4 @@
-// Copyright 2023 Natsu Neko, Inc. All Rights Reserved.
+// Copyright Natsu Neko, Inc. All Rights Reserved.
 
 #pragma once
 

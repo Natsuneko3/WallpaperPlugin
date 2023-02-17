@@ -59,20 +59,12 @@ void FWallPaperModule::StartupModule()
 	FWallpaperStyle::ReloadTextures();
 	FWallpaperCommands::Register();
 
-	/*PluginCommands = MakeShareable(new FUICommandList);
-
-	PluginCommands->MapAction(
-		FWallpaperCommands::Get().PluginAction,
-		FExecuteAction::CreateRaw(this, &FWallPaperModule::PluginButtonClicked),
-		FCanExecuteAction());
-		*/
-
 	
 	FLevelEditorModule& LevelEditorModule = FModuleManager::Get().LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 	
 	TSharedRef<FUICommandList> CommandList = LevelEditorModule.GetGlobalLevelEditorActions();
 	//CommandList->MapAction(WallpaperCommands::Get().Excution,FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::NewLevel));
-	CommandList->MapAction(FWallpaperCommands::Get().PluginAction, 
+	CommandList->MapAction(FWallpaperCommands::Get().Excution, 
 		FExecuteAction::CreateLambda([this]
 		{
 			if(Wallpaperlist.Num()>2)
@@ -95,24 +87,31 @@ void FWallPaperModule::StartupModule()
 		}),
 		FCanExecuteAction()
 	);
-	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FWallPaperModule::RegisterMenus));
 
+	/*PluginCommands = MakeShareable(new FUICommandList);
+
+	PluginCommands->MapAction(
+		FWallpaperCommands::Get().PluginAction,
+		FExecuteAction::CreateRaw(this, &FWallPaperModule::PluginButtonClicked),
+		FCanExecuteAction());*/
+
+	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FWallPaperModule::RegisterMenus));
 }
 
 void FWallPaperModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
-	//FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
-	//UToolMenus::UnRegisterStartupCallback(this);
-	//UE_LOG(LogTemp,Log,TEXT("shutdown moud"));
+	UToolMenus::UnRegisterStartupCallback(this);
+	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
+	UToolMenus::UnRegisterStartupCallback(this);
 	
 
 	//ClearCahce
-	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
+	FString PluginsPath = FPaths::ProjectPluginsDir()/"WallpaperPlugin";
 	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
 	{
-		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
+		PluginsPath = FPaths::EnginePluginsDir()/"Marketplace/WallpaperPlugin";
 	}
 		
 	FString TargetFilePath = PluginsPath/"Content/Cache";
@@ -164,7 +163,7 @@ void FWallPaperModule::InitialEditorStyle()
 	if (!IsValid(StyleSettings->Menu_Background.GetResourceObject()))
 	{
 		FSlateBrush ChildBackGround;
-		UTexture* ChildBackTexture = LoadObject<UTexture>(NULL,TEXT("/Wallpaper/wallhaven-4g62qe"));
+		UTexture* ChildBackTexture = LoadObject<UTexture>(NULL,TEXT("/Engine/EngineResources/Black_Low.Black"));
 		ChildBackGround.SetResourceObject(ChildBackTexture);
 		ChildBackGround.SetImageSize(FVector2D(32, 32));
 
@@ -183,8 +182,8 @@ void FWallPaperModule::InitialEditorStyle()
 		{
 			if (Wallpaperlist.Num() == 0)
 			{
-				UTexture* EditorTexture = LoadObject<UTexture>(NULL,TEXT("/Wallpaper/wallhaven-966dxk"));
-				UTexture* PanelTexture = LoadObject<UTexture>(NULL,TEXT("/Wallpaper/wallhaven-4g62qe"));
+				UTexture* EditorTexture = LoadObject<UTexture>(NULL,TEXT("/Engine/EngineResources/Black_Low.Black"));
+				UTexture* PanelTexture = LoadObject<UTexture>(NULL,TEXT("/Engine/EngineResources/Black_Low.Black"));
 				Editor.SetResourceObject(EditorTexture);
 				Editor.SetImageSize(FVector2D(32, 32));
 
@@ -197,7 +196,7 @@ void FWallPaperModule::InitialEditorStyle()
 				SolidBackground = panel;
 				SolidBackground.TintColor = FLinearColor(FVector(StyleSettings->PanelOpacity));
 			}
-			else if(LastWallpaperNum != Wallpaperlist.Num())
+			else 
 			{
 				LastWallpaperNum = Wallpaperlist.Num();
 				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
@@ -499,7 +498,7 @@ void FWallPaperModule::CreateWatcher()
 	if (DirectoryWatcher)
 	{
 		const FString Path = (StyleSettings->WallPaperDirectoryPath.Path) + "/steamapps/workshop/content";
-		const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";//FPaths::ProjectContentDir() / "Wallpaper";
+		const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";
 		if (WallpaperPlayer->CanPlayvideo())
 		{
 			if (IFileManager::Get().DirectoryExists(*Path))
@@ -588,12 +587,8 @@ void FWallPaperModule::ImportPicTheme()
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";
-	FString PluginsPath = FPaths::ProjectPluginsDir()/"WallpaperPlugin";
 	
-	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
-	{
-		PluginsPath = FPaths::EnginePluginsDir()/"Marketplace/WallpaperPlugin";
-	}
+	
 	if (!IFileManager::Get().DirectoryExists(*FilePath))
 	{
 		IFileManager::Get().MakeDirectory(*FilePath);
@@ -604,7 +599,11 @@ void FWallPaperModule::ImportPicTheme()
 	IFileManager::Get().FindFiles(FinderFile, *FilePath,TEXT("*.uasset"));
 	
 	//Find plugins path
-	
+	FString PluginsPath = FPaths::ProjectPluginsDir()/"WallpaperPlugin";
+	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
+	{
+		PluginsPath = FPaths::EnginePluginsDir()/"Marketplace/WallpaperPlugin";
+	}
 		
 	FString TargetFilePath = PluginsPath/"Content/Cache";
 	//clear file
