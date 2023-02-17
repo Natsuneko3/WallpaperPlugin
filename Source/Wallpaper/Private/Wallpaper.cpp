@@ -187,8 +187,8 @@ void FWallPaperModule::InitialEditorStyle()
 		{
 			if (Wallpaperlist.Num() == 0)
 			{
-				UTexture* EditorTexture = LoadObject<UTexture>(NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/wallhaven-966dxk"));
-				UTexture* PanelTexture = LoadObject<UTexture>(NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/wallhaven-4g62qe"));
+				UTexture* EditorTexture = LoadObject<UTexture>(NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/Default_1"));
+				UTexture* PanelTexture = LoadObject<UTexture>(NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/Default_2"));
 				Editor.SetResourceObject(EditorTexture);
 				Editor.SetImageSize(FVector2D(32, 32));
 
@@ -579,7 +579,7 @@ void FWallPaperModule::ImportPicTheme()
 	}
 	if (!IFileManager::Get().DirectoryExists(*FilePath))
 	{
-		IFileManager::Get().MakeDirectory(*PluginsPath);
+		IFileManager::Get().MakeDirectory(*FilePath);
 		//AssetRegistryModule.Get().AddPath("/Game/Wallpaper");
 	}
 	
