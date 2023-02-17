@@ -108,10 +108,10 @@ void FWallPaperModule::ShutdownModule()
 	
 
 	//ClearCahce
-	FString PluginsPath = FPaths::ProjectPluginsDir()/"WallpaperPlugin";
+	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
 	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
 	{
-		PluginsPath = FPaths::EnginePluginsDir()/"Marketplace"/"WallpaperPlugin";
+		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
 	}
 		
 	FString TargetFilePath = PluginsPath/"Content/Cache";
