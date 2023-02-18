@@ -191,9 +191,9 @@ void FWallPaperModule::InitialEditorStyle()
 			if (Wallpaperlist.Num() == 0)
 			{
 				UTexture* EditorTexture = LoadObject<UTexture>(
-					NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/Default_1"));
+					NULL,TEXT("/Engine/EngineResources/Black_Low.Black"));
 				UTexture* PanelTexture = LoadObject<UTexture>(
-					NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/Default_2"));
+					NULL,TEXT("/Engine/EngineResources/Black_Low.Black"));
 				Editor.SetResourceObject(EditorTexture);
 				Editor.SetImageSize(FVector2D(32, 32));
 
@@ -592,10 +592,10 @@ void FWallPaperModule::ImportPicTheme()
 	IFileManager::Get().FindFiles(FinderFile, *FilePath,TEXT("*.uasset"));
 	
 	//Find plugins path
-	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
+	FString PluginsPath = FPaths::ProjectPluginsDir()/"WallpaperPlugin";
 	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
 	{
-		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
+		PluginsPath = FPaths::EnginePluginsDir()/"Marketplace/WallpaperPlugin";
 	}
 		
 	FString TargetFilePath = PluginsPath/"Content/Cache";
