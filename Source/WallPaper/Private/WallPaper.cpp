@@ -489,7 +489,7 @@ void FWallPaperModule::CheckTimer()
 		};
 		FTimerDelegate TimerDelegate;
 		TimerDelegate.BindLambda(lambda);
-		float TImerDuration = FMath::Max(StyleSettings->Time, 1);
+		float TImerDuration = FMath::Max(StyleSettings->Time, 1.0f);
 		timerManager.SetTimer(handle, TimerDelegate, TImerDuration * 60, true);
 	}
 }
