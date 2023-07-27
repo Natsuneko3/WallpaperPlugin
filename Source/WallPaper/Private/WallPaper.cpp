@@ -332,7 +332,7 @@ void FWallPaperModule::RegisterMenus()
 			SNew(SCheckBox)
 		.ToolTipText(LOCTEXT("CheckBoxTooltip", "Enable Wallpaper engine"))
 		.IsChecked_Lambda(
-				               [=]() -> ECheckBoxState
+				               [this]() -> ECheckBoxState
 				               {
 					               return StyleSettings->UseWallpaperEngine
 						                      ? ECheckBoxState::Checked
@@ -433,7 +433,7 @@ void FWallPaperModule::SetSetting()
 		GetMutableDefault<UWallPaperSetting>()->UpdateGlobalUserConfigFile();
 		return true;
 	});
-	SettingS->OnResetDefaults().BindLambda([=]()-> bool
+	SettingS->OnResetDefaults().BindLambda([this]()-> bool
 	{
 		StyleSettings->ResetStyleColor();
 		StyleSettings->InitCoreStyle();
