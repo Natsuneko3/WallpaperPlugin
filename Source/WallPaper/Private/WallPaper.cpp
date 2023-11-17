@@ -607,7 +607,7 @@ void FWallPaperModule::ImportPicTheme()
 	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
 	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
 	{
-		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
+		PluginsPath = FPaths::EnginePluginsDir()/"Marketplace/Wallpaper";
 	}
 		
 	FString TargetFilePath = PluginsPath/"Content/Cache";
