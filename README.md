@@ -10,8 +10,9 @@ ___
 [UE4.26](https://1drv.ms/u/s!AvyznzGW09kP8v5toj33IgTgWNSTig?e=vVsnf0) \
 [UE4.27](https://1drv.ms/u/s!AvyznzGW09kP8v5AtHEQBxZE5gpbxQ?e=ZgK1Gz) \
 [UE5.0](https://1drv.ms/u/s!AvyznzGW09kP84V6DMXbVUdSMrS_zg?e=1Y2ps8) \
-[UE5.1](https://1drv.ms/u/s!AvyznzGW09kP84V5NtkQtNu9Yb8rRw?e=gufzzE) 
-
+[UE5.1](https://1drv.ms/u/s!AvyznzGW09kP84V5NtkQtNu9Yb8rRw?e=gufzzE) \
+[UE5.2](https://github.com/Natsuneko3/WallpaperPlugin/releases/download/V1.1/UE5.2Plugins.zip) \
+[UE5.3](https://github.com/Natsuneko3/WallpaperPlugin/releases/download/V1.1/ue5.3Plugins.zip)
 ## 使用方法
 
 1.选择你引擎对应版本，把plugins解压到你项目根目录下。
