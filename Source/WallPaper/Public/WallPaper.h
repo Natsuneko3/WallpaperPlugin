@@ -36,6 +36,7 @@ public:
 	void ApplyThemeStyle();
 	void Reimport(const TArray<struct FFileChangeData>& FileChanges);
 	void RegisterMenus();
+	void ChangeRandomWallpaper();
 
 
 private:
