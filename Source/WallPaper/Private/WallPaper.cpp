@@ -45,7 +45,7 @@ public:
 
 	virtual void RegisterCommands() override
 	{
-		UI_COMMAND(Excution, "Excution", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift|EModifierKey::Control,EKeys::C));
+		UI_COMMAND(Excution, "ChangeWallpaper", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift|EModifierKey::Control,EKeys::C));
 		//UI_COMMAND( Excution, "Excution", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord() );
 	}
 	TSharedPtr<FUICommandInfo> Excution;
@@ -61,8 +61,16 @@ void FWallPaperModule::StartupModule()
 	WallpaperPlayer = NewObject<UWallPaperBrush>(EditorTexturePack, FName("WallpaperPlayer"), RF_MarkAsRootSet);
 	WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
 	bLasyType = StyleSettings->UseWallpaperEngine;
-	FCoreDelegates::OnPostEngineInit.AddRaw(this, &FWallPaperModule::CheckTimer);
-	//FCoreDelegates::OnPostEngineInit.AddRaw(this, &FWallPaperModule::ApplyThemeStyle);
+
+
+	FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([this](float Time)
+		{
+			CheckTimer();
+			ChangeRandomWallpaper();
+			return false;
+		}), 1.f);
+
+
 
 	ImportWallpaper();
 	GetMutableDefault<UEditorStyleSettings>()->bUseGrid = StyleSettings->EditorUseGrid;
@@ -81,23 +89,7 @@ void FWallPaperModule::StartupModule()
 	CommandList->MapAction(WallpaperCommands::Get().Excution, 
 		FExecuteAction::CreateLambda([this]
 		{
-			if(Wallpaperlist.Num()>2)
-			{
-				if(WallpaperPlayer->CanPlayvideo())
-				{
-					int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
-					int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
-					HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
-					HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
-				}
-				else
-				{
-					int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
-				int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
-				ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
-				ApplyPanelBGWithDx12(Wallpaperlist[RandomPanel]);
-				}
-			}
+			ChangeRandomWallpaper();
 		}),
 		FCanExecuteAction()
 	);
@@ -192,9 +184,9 @@ void FWallPaperModule::InitialEditorStyle()
 			if (Wallpaperlist.Num() == 0)
 			{
 				UTexture* EditorTexture = LoadObject<UTexture>(
-					NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/Default_1"));
+					NULL,TEXT("/Engine/EngineResources/Black_Low.Black"));
 				UTexture* PanelTexture = LoadObject<UTexture>(
-					NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/Default_2"));
+					NULL,TEXT("/Engine/EngineResources/Black_Low.Black"));
 				Editor.SetResourceObject(EditorTexture);
 				Editor.SetImageSize(FVector2D(32, 32));
 
@@ -311,16 +303,6 @@ void FWallPaperModule::RegisterMenus()
 {
 	// Owner will be used for cleanup in call to UToolMenus::UnregisterOwner
 	FToolMenuOwnerScoped OwnerScoped(this);
-	/*FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
-	TSharedRef<  FUICommandList > CommandBindings = LevelEditorModule.GetGlobalLevelEditorActions();
-	
-	
-	CommandBindings->MapAction(WallpaperCommands::Get().Excution,
-		FExecuteAction::CreateStatic(&FWallPaperModule::ImportPicTheme),
-		FCanExecuteAction()
-		);*/
-	
-	
 
 
 	TSharedRef<SWidget> WallpaperWidget = SNew(SHorizontalBox)
@@ -401,9 +383,20 @@ void FWallPaperModule::RegisterMenus()
 
 			]
 
-		];
-
-
+		]
+	+ SHorizontalBox::Slot()
+	.AutoWidth()
+	[
+		SNew(SButton)
+		 .OnClicked_Lambda([=]()
+		 {
+			 ChangeRandomWallpaper();
+			 return FReply::Handled();
+		 })
+		.Text(LOCTEXT("RandomWallpaper", "Random"))
+		 
+	];
+	
 	{
 		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.PlayToolBar");
 		{
@@ -415,6 +408,28 @@ void FWallPaperModule::RegisterMenus()
 					                                    LOCTEXT("Wallpaper", "WallpaperEditor")));
 				Entry.SetCommandList(PluginCommands);
 			}
+		}
+	}
+}
+
+void FWallPaperModule::ChangeRandomWallpaper()
+{
+	UE_LOG(LogTemp,Log,TEXT("Change"));
+	if(Wallpaperlist.Num()>2)
+	{
+		if(WallpaperPlayer->CanPlayvideo())
+		{
+			int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+			int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
+			HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
+			HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
+		}
+		else
+		{
+			int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+			int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
+			ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
+			ApplyPanelBGWithDx12(Wallpaperlist[RandomPanel]);
 		}
 	}
 }
@@ -479,17 +494,11 @@ void FWallPaperModule::CheckTimer()
 		}
 		auto lambda = [&]()
 		{
-			if (Wallpaperlist.Num() > 0)
-			{
-				int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
-				int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
-				HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
-				HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
-			}
+			ChangeRandomWallpaper();
 		};
 		FTimerDelegate TimerDelegate;
 		TimerDelegate.BindLambda(lambda);
-		float TImerDuration = FMath::Max(StyleSettings->Time, 1);
+		float TImerDuration = FMath::Max(StyleSettings->Time, 1.0f);
 		timerManager.SetTimer(handle, TimerDelegate, TImerDuration * 60, true);
 	}
 }
