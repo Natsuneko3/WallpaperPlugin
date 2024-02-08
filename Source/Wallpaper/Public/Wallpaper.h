@@ -68,6 +68,7 @@ public:
 	TSharedPtr<FString> CurrentPanelBG;
 	void ImportWallpaper();
 	void ImportPicTheme();
+	void ChangeRandomWallpaper();
 	
 	UPROPERTY()
 	void CheckTimer();
