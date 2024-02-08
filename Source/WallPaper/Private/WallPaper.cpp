@@ -113,13 +113,8 @@ void FWallPaperModule::ShutdownModule()
 	WallpaperCommands::Unregister();
 	StyleSettings->ResetStyleColor();
 	//Clear Cache
-	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
-	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
-    	{
-    		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
-    	}
-    		
-    	FString TargetFilePath = PluginsPath/"Content/Cache";
+
+	FString TargetFilePath = FPaths::ProjectSavedDir()/"Cache";
     	if(IFileManager::Get().DirectoryExists(*TargetFilePath))
     	{
     		IFileManager::Get().DeleteDirectory(*(TargetFilePath),false,true);
@@ -619,7 +614,7 @@ void FWallPaperModule::ImportPicTheme()
 		PluginsPath = FPaths::EnginePluginsDir()/"Marketplace/Wallpaper";
 	}
 		
-	FString TargetFilePath = PluginsPath/"Content/Cache";
+	FString TargetFilePath = FPaths::ProjectSavedDir()/"Cache";
 	//clear file
 	if(IFileManager::Get().DirectoryExists(*TargetFilePath))
 	{
