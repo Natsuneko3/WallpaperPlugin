@@ -392,8 +392,20 @@ void FWallPaperModule::RegisterMenus()
 				.Text_Raw(this, &FWallPaperModule::GetPanelComboBoxContent)
 
 			]
+			]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(SButton)
+			 .OnClicked_Lambda([=]()
+			 {
+				 ChangeRandomWallpaper();
+				 return FReply::Handled();
+			 })
+			.Text(LOCTEXT("RandomWallpaper", "Random"))
 
 		];
+
 
 
 	{
