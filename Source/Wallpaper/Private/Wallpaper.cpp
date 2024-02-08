@@ -40,7 +40,15 @@ void FWallPaperModule::StartupModule()
 	WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
 	bLasyType = StyleSettings->UseWallpaperEngine;
 
-	FCoreDelegates::OnPostEngineInit.AddRaw(this, &FWallPaperModule::CheckTimer);
+
+	FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([this](float Time)
+		{
+			CheckTimer();
+			ChangeRandomWallpaper();
+			return false;
+		}), 1.f);
+
+
 
 	ImportWallpaper();
 	InitialEditorStyle();
@@ -67,23 +75,7 @@ void FWallPaperModule::StartupModule()
 	CommandList->MapAction(FWallpaperCommands::Get().Excution, 
 		FExecuteAction::CreateLambda([this]
 		{
-			if(Wallpaperlist.Num()>2)
-			{
-				if(WallpaperPlayer->CanPlayvideo())
-				{
-					int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
-					int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
-					HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
-					HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
-				}
-				else
-				{
-					int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
-				int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
-				ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
-				ApplyPanelBGWithDx12(Wallpaperlist[RandomPanel]);
-				}
-			}
+			ChangeRandomWallpaper();
 		}),
 		FCanExecuteAction()
 	);
@@ -396,6 +388,17 @@ void FWallPaperModule::RegisterMenus()
 				.Text_Raw(this, &FWallPaperModule::GetPanelComboBoxContent)
 
 			]
+			]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(SButton)
+			 .OnClicked_Lambda([=]()
+			 {
+				 ChangeRandomWallpaper();
+				 return FReply::Handled();
+			 })
+			.Text(LOCTEXT("RandomWallpaper", "Random"))
 
 		];
 
@@ -410,6 +413,28 @@ void FWallPaperModule::RegisterMenus()
 					AddEntry(FToolMenuEntry::InitWidget("Wallpaper", WallpaperWidget, LOCTEXT("Wallpaper", "WallpaperEditor")));
 				Entry.SetCommandList(PluginCommands);
 			}
+		}
+	}
+}
+
+void FWallPaperModule::ChangeRandomWallpaper()
+{
+	UE_LOG(LogTemp,Log,TEXT("Change"));
+	if(Wallpaperlist.Num()>2)
+	{
+		if(WallpaperPlayer->CanPlayvideo())
+		{
+			int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+			int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
+			HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
+			HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
+		}
+		else
+		{
+			int RamdomEditor = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 2), 0);
+			int RandomPanel = FMath::Max(FMath::RandRange(0, Wallpaperlist.Num() - 1), 0);
+			ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
+			ApplyPanelBGWithDx12(Wallpaperlist[RandomPanel]);
 		}
 	}
 }

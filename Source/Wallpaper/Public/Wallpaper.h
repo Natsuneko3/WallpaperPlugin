@@ -53,6 +53,7 @@ private:
 	FDelegateHandle DirectoryWatcherHandle;
 	
 	void SetSetting();
+	void ChangeRandomWallpaper();
 	
 	UPROPERTY()
 	void CreateWatcher();
