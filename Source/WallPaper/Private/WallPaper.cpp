@@ -1,7 +1,7 @@
 // Copyright 2023 Natsu Neko, Inc. All Rights Reserved.
 
 #include "WallPaper.h"
-
+#include "Interfaces/IPluginManager.h"
 #include "DetailLayoutBuilder.h"
 #include "DirectoryWatcherModule.h"
 #include "EditorUtilitySubsystem.h"
