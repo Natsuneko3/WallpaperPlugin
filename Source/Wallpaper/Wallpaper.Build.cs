@@ -52,7 +52,7 @@ public class WallPaper : ModuleRules
 				"EditorFramework",
 				"Slate",
 				"ToolMenus",
-				
+				"Projects"
 
 
 				// ... add private dependencies that you statically link with here ...	
