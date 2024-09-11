@@ -50,7 +50,8 @@ public class WallPaper : ModuleRules
 				"EditorFramework",
 				"Slate",
 				"ToolMenus",
-				"WindowsTargetPlatform"
+				"WindowsTargetPlatform",
+    				"Projects"
 
 
 				// ... add private dependencies that you statically link with here ...	
