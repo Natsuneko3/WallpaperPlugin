@@ -112,11 +112,7 @@ void FWallPaperModule::ShutdownModule()
 	
 	StyleSettings->ResetStyleColor();
 	//Clear Cache
-	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
-	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
-    	{
-    		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
-    	}
+	FString PluginsPath = IPluginManager::Get().FindPlugin(TEXT("WallPaper"))->GetBaseDir();
     		
     	FString TargetFilePath = PluginsPath/"Content/Cache";
     	if(IFileManager::Get().DirectoryExists(*TargetFilePath))
@@ -611,11 +607,7 @@ void FWallPaperModule::ImportPicTheme()
 	IFileManager::Get().FindFiles(FinderFile, *FilePath,TEXT("*.uasset"));
 	
 	//Find plugins path
-	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
-	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
-	{
-		PluginsPath = FPaths::EnginePluginsDir()/"Marketplace/Wallpaper";
-	}
+	FString PluginsPath = IPluginManager::Get().FindPlugin(TEXT("WallPaper"))->GetBaseDir();
 		
 	FString TargetFilePath = PluginsPath/"Content/Cache";
 	//clear file
