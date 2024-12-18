@@ -52,8 +52,8 @@ public class WallPaper : ModuleRules
 				"EditorFramework",
 				"Slate",
 				"ToolMenus",
-				"LevelEditor"
-				
+				"LevelEditor",
+				"Projects"
 
 
 				// ... add private dependencies that you statically link with here ...	
