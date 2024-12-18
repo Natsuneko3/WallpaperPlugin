@@ -6,6 +6,7 @@
 #include "EditorUtilityWidgetBlueprint.h"
 #include "MediaPlayer.h"
 #include "MediaTexture.h"
+#include "Materials/Material.h"
 #include "WallPaperEditor.generated.h"
 
 /**

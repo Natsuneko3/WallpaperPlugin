@@ -9,25 +9,16 @@
 #include "WallPaperSetting.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Settings/EditorStyleSettings.h"
-
-
-#include "IBlutilityModule.h"
-#include "IContentBrowserDataModule.h"
 #include "IDirectoryWatcher.h"
-
 #include "Editor.h"
 #include "EditorStyleSet.h"
 #include "Editor/EditorEngine.h"
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-
 #include "LevelEditor.h"
 #include "LevelEditorActions.h"
-#include "RenderGraphResources.h"
-
-
 #include "Styling/SlateStyle.h"
-#include "Engine/Blueprint.h"
+#include "HAL/FileManager.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/MessageDialog.h"
 
 
 #define LOCTEXT_NAMESPACE "FWallPaperModule"
@@ -397,7 +388,7 @@ void FWallPaperModule::RegisterMenus()
 		.AutoWidth()
 		[
 			SNew(SButton)
-			 .OnClicked_Lambda([=]()
+			 .OnClicked_Lambda([this]()
 			 {
 				 ChangeRandomWallpaper();
 				 return FReply::Handled();

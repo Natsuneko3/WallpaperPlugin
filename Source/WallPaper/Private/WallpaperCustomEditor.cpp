@@ -3,6 +3,7 @@
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
 #include "WallPaper.h"
+#include "Widgets/Input/SButton.h"
 
 
 #define LOCTEXT_NAMESPACE "FWallPaperModule"
