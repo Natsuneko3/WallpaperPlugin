@@ -31,16 +31,16 @@ public:
 	float PanelOpacity = 1;
 
 	UPROPERTY(config,EditAnywhere,Category = "Engine Style",meta=(DisplayName = "Enable Timer"))
-	bool bEnableTimer;
+	bool bEnableTimer = true;
 	
 	UPROPERTY(Config,EditAnywhere,Category = "Engine Style",meta=(EditCondition="bEnableTimer",DisplayName = "Wallpaper Loop Time(Min)"))
-	float Time;
+	float Time = 30;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Use Wallpaper Engine"))
 	bool UseWallpaperEngine;
 	
 	UPROPERTY(Config, EditAnywhere, Category="Engine Style", meta = (DisplayName = "WallPaper Direction"))
-	FDirectoryPath  WallPaperDirectoryPath;
+	FDirectoryPath  WallPaperDirectoryPath = FDirectoryPath("D:/steam");
 	
 	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Menu Background"))
 	FSlateBrush Menu_Background;
