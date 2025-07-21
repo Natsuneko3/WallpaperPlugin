@@ -392,7 +392,7 @@ void FWallPaperModule::RegisterMenus()
 		.AutoWidth()
 		[
 			SNew(SButton)
-			 .OnClicked_Lambda([=]()
+			 .OnClicked_Lambda([this]()
 			 {
 				 ChangeRandomWallpaper();
 				 return FReply::Handled();
