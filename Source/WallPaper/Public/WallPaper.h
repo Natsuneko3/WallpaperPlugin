@@ -40,6 +40,12 @@ public:
 
 
 private:
+	enum class EWallpaperTarget
+	{
+		Editor,
+		Panel
+	};
+
 	bool IsEditorVideoMatarial = false;
 	bool IsPanelVideoMatarial = false;
 	bool bLasyType;
@@ -52,8 +58,10 @@ private:
 	FGuid LastUID;
 	FTimerHandle handle;
 	FDelegateHandle DirectoryWatcherHandle;
+	FString WatchedDirectory;
 	
 	void SetSetting();
+	void ApplyWallpaperToTarget(TSharedPtr<FString> Item, EWallpaperTarget Target);
 
 	
 	UPROPERTY()
@@ -83,6 +91,7 @@ private:
 	
 	TArray<TSharedPtr<FString>> WallpaperPath;
 	
+	TSharedPtr<class SComboBox<TSharedPtr<FString>>> WallPaperEditorComboBox;
 	TSharedPtr<class SComboBox<TSharedPtr<FString>>> WallPaperPanelComboBox;
 	TSharedPtr<SBox> ComboBoxContent;
 };
