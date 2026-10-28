@@ -2,31 +2,46 @@
 
 #include "DirectoryWatcherModule.h"
 #include "HAL/FileManager.h"
+#include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
 
-void FWallpaperDirectoryWatcher::Watch(
-	FDelegateHandle& InOutHandle,
-	FString& InOutDirectory,
-	const FString& Directory,
-	const IDirectoryWatcher::FDirectoryChanged& Callback)
+void FWallpaperDirectoryWatcher::Watch(FDelegateHandle& InOutHandle, FString& InOutDirectory, const FString& Directory, const IDirectoryWatcher::FDirectoryChanged& Callback)
 {
-	Stop(InOutHandle, InOutDirectory);
+	if (Directory.IsEmpty())
+	{
+		Stop(InOutHandle, InOutDirectory);
+		return;
+	}
 
-	if (Directory.IsEmpty() || !IFileManager::Get().DirectoryExists(*Directory))
+	FString NormalizedDirectory = FPaths::ConvertRelativePathToFull(Directory);
+	FPaths::NormalizeDirectoryName(NormalizedDirectory);
+	if (!IFileManager::Get().DirectoryExists(*NormalizedDirectory))
+	{
+		Stop(InOutHandle, InOutDirectory);
+		return;
+	}
+	if (InOutHandle.IsValid() && FPaths::IsSamePath(InOutDirectory, NormalizedDirectory))
 	{
 		return;
 	}
 
-	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(
-		TEXT("DirectoryWatcher"));
+	Stop(InOutHandle, InOutDirectory);
+
+	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
 	IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
 	if (!DirectoryWatcher)
 	{
 		return;
 	}
 
-	DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(Directory, Callback, InOutHandle);
-	InOutDirectory = Directory;
+	if (DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(NormalizedDirectory, Callback, InOutHandle, IDirectoryWatcher::IncludeDirectoryChanges))
+	{
+		InOutDirectory = MoveTemp(NormalizedDirectory);
+	}
+	else
+	{
+		InOutHandle.Reset();
+	}
 }
 
 void FWallpaperDirectoryWatcher::Stop(FDelegateHandle& InOutHandle, FString& InOutDirectory)
@@ -39,8 +54,7 @@ void FWallpaperDirectoryWatcher::Stop(FDelegateHandle& InOutHandle, FString& InO
 
 	if (FModuleManager::Get().IsModuleLoaded(TEXT("DirectoryWatcher")))
 	{
-		FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::GetModuleChecked<FDirectoryWatcherModule>(
-			TEXT("DirectoryWatcher"));
+		FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::GetModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
 		if (IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get())
 		{
 			DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(InOutDirectory, InOutHandle);

@@ -12,8 +12,8 @@ struct FWallpaperItem
 
 	FWallpaperItem(FString InDisplayName, FString InResourcePath, bool bInIsVideo)
 		: DisplayName(MoveTemp(InDisplayName))
-		  , ResourcePath(MoveTemp(InResourcePath))
-		  , bIsVideo(bInIsVideo)
+		, ResourcePath(MoveTemp(InResourcePath))
+		, bIsVideo(bInIsVideo)
 	{
 	}
 };

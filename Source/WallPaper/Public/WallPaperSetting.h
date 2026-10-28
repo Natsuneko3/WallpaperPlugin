@@ -1,59 +1,52 @@
-﻿// Copyright 2023 Natsu Neko, Inc. All Rights Reserved.
+// Copyright 2023 Natsu Neko, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "EditorUtilityWidgetBlueprint.h"
-#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "Styling/SlateBrush.h"
 #include "Styling/StyleColors.h"
+#include "UObject/Object.h"
 #include "WallPaperSetting.generated.h"
 
-/**
- * 
- */
 UCLASS(Config = Wallpaper)
 class WALLPAPER_API UWallPaperSetting : public UObject
 {
 	GENERATED_BODY()
 
 public:
-	
-	//UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Use Random Theme Color"))
-	bool RandomMainThemeColor = false;
-	
-	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "UseGrid"))
-	bool EditorUseGrid;
-	
-	UPROPERTY(Config,EditAnywhere,Category = "Engine Style",meta=(DisplayName = "Editor Opacity"))
-	float EditorOpacity = 1;
+	UWallPaperSetting();
 
-	UPROPERTY(Config,EditAnywhere,Category = "Engine Style",meta=(DisplayName = "Panel Opacity"))
-	float PanelOpacity = 1;
+	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Use Grid"))
+	bool EditorUseGrid = false;
 
-	UPROPERTY(config,EditAnywhere,Category = "Engine Style",meta=(DisplayName = "Enable Timer"))
+	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Editor Opacity", ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
+	float EditorOpacity = 1.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Panel Opacity", ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
+	float PanelOpacity = 1.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Enable Timer"))
 	bool bEnableTimer = true;
-	
-	UPROPERTY(Config,EditAnywhere,Category = "Engine Style",meta=(EditCondition="bEnableTimer",DisplayName = "Wallpaper Loop Time(Min)"))
-	float Time = 30;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (EditCondition = "bEnableTimer", DisplayName = "Wallpaper Loop Time (Min)", ClampMin = "1", UIMin = "1"))
+	float Time = 30.0f;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Use Wallpaper Engine"))
-	bool UseWallpaperEngine;
-	
-	UPROPERTY(Config, EditAnywhere, Category="Engine Style", meta = (DisplayName = "WallPaper Direction"))
-	FDirectoryPath  WallPaperDirectoryPath = FDirectoryPath("D:/steam");
-	
+	bool UseWallpaperEngine = false;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Steam Directory"))
+	FDirectoryPath WallPaperDirectoryPath = FDirectoryPath(TEXT("D:/steam"));
+
 	UPROPERTY(Config, EditAnywhere, Category = "Engine Style", meta = (DisplayName = "Menu Background"))
 	FSlateBrush Menu_Background;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Color Style", meta = (DisplayName = "Theme"))
 	FStyleColorList StyleColors;
 
-	UWallPaperSetting();
-	void ResetStyleColor();
-	inline void PostProcessCustomStyle(UScriptStruct* StyleStruct, void* StructPtr);
+	void ResetToDefaults();
 
-public:
-	
+private:
+	void ResetStyleColor();
 	void InitCoreStyle();
-	
 };

@@ -3,95 +3,66 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "EditorUtilityWidgetBlueprint.h"
-#include "ISettingsModule.h"
+#include "Containers/Ticker.h"
 #include "Modules/ModuleManager.h"
-#include "ToolMenus.h"
-#include "WallPaperEditor.h"
+#include "TimerManager.h"
+#include "UObject/StrongObjectPtr.h"
+#include "WallpaperTarget.h"
 
-
-class UWindowsTargetSettings;
+class FUICommandList;
+class FWallpaperList;
+class FWallpaperStyleApplier;
+class IAssetRegistry;
+class ISettingsSection;
+class UWallPaperBrush;
 class UWallPaperSetting;
-
+class UEditorStyleSettings;
+struct FAssetData;
+struct FFileChangeData;
 
 class FWallPaperModule : public IModuleInterface
 {
-	TSharedPtr<ISettingsSection> SettingS;
-
-	//TODO 主题色，自动连接wallpaper。禁止删除tex
 public:
-	/** IModuleInterface implementation */
-	//FWallPaperModule();
+	FWallPaperModule();
+	virtual ~FWallPaperModule() override;
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	bool OnSettingModified();
 
-	UWallPaperSetting* StyleSettings = GetMutableDefault<UWallPaperSetting>();
-	void PluginButtonClicked();
-	void ApplyMenuBackGround();
-	void InitialEditorStyle();
-	//Dx12不支持播放视频，暂时
-	void ApplyEditorBGWithDx12 (TSharedPtr<FString> Item);
-	void ApplyPanelBGWithDx12 (TSharedPtr<FString> Item);
-	void ApplyThemeStyle();
-	void Reimport(const TArray<struct FFileChangeData>& FileChanges);
+private:
+	void RegisterSettings();
+	bool OnSettingsModified();
+	bool ResetSettings();
 	void RegisterMenus();
 	void ChangeRandomWallpaper();
+	void ApplySelection(EWallpaperTarget Target);
+	void RefreshWallpapers();
+	void UpdateTimer();
+	void UpdateWatcher();
+	void QueueWallpaperRefresh();
+	void OnDirectoryChanged(const TArray<FFileChangeData>& FileChanges);
+	void OnAssetChanged(const FAssetData& Asset);
+	void OnAssetRenamed(const FAssetData& Asset, const FString& OldObjectPath);
+	void RegisterAssetEvents();
+	void UnregisterAssetEvents();
 
-
-private:
-	enum class EWallpaperTarget
-	{
-		Editor,
-		Panel
-	};
-
-	bool IsEditorVideoMatarial = false;
-	bool IsPanelVideoMatarial = false;
-	bool bLasyType;
-	int LastWallpaperNum = 0;
-	UEditorUtilityWidgetBlueprint* EditorWidget;
-	FAssetData Data;
-	TSharedPtr<class FUICommandList> PluginCommands;
-	bool bWatcherIsRunning = false;
-	int MaxNum = INDEX_NONE;
-	FGuid LastUID;
-	FTimerHandle handle;
+	UWallPaperSetting* Settings = nullptr;
+	TWeakObjectPtr<UEditorStyleSettings> EditorStyleSettings;
+	TStrongObjectPtr<UWallPaperBrush> WallpaperPlayer;
+	TUniquePtr<FWallpaperStyleApplier> StyleApplier;
+	TUniquePtr<FWallpaperList> Wallpapers;
+	TSharedPtr<ISettingsSection> SettingsSection;
+	TSharedPtr<FUICommandList> GlobalCommands;
+	IAssetRegistry* AssetRegistry = nullptr;
+	FTimerHandle WallpaperTimer;
+	TWeakPtr<FTimerManager> EditorTimerManager;
+	FTSTicker::FDelegateHandle RefreshTicker;
 	FDelegateHandle DirectoryWatcherHandle;
 	FString WatchedDirectory;
-	
-	void SetSetting();
-	void ApplyWallpaperToTarget(TSharedPtr<FString> Item, EWallpaperTarget Target);
-
-	
-	UPROPERTY()
-	void CreateWatcher();
-
-public:
-	FText GetEditorComboBoxContent() const;
-	FText GetPanelComboBoxContent() const;
-	TSharedRef<SWidget> HandleGenerateWidget(TSharedPtr<FString> Item) const;
-	int FindWallpaperIndex(TSharedPtr<FString> Item);
-	void HandleEditorSelectionChanged(TSharedPtr<FString> Item);
-	void HandlePanelSelectionChanged(TSharedPtr<FString> Item);
-	TSharedPtr<FString> CurrentEditorBG;
-	TSharedPtr<FString> CurrentPanelBG;
-	void ImportWallpaper();
-	void ImportPicTheme();
-	
-	UPROPERTY()
-	void CheckTimer();
-
-private:
-	FString LastWallpaperPath;
-	UPROPERTY()
-	UWallPaperBrush* WallpaperPlayer;
-	
-	TArray<TSharedPtr<FString>> Wallpaperlist;
-	
-	TArray<TSharedPtr<FString>> WallpaperPath;
-	
-	TSharedPtr<class SComboBox<TSharedPtr<FString>>> WallPaperEditorComboBox;
-	TSharedPtr<class SComboBox<TSharedPtr<FString>>> WallPaperPanelComboBox;
-	TSharedPtr<SBox> ComboBoxContent;
+	FString LastSourcePath;
+	TSet<FString> ChangedVideoPaths;
+	bool bLastUseVideo = false;
+	bool bUsingProjectTextures = true;
+	bool bReloadVideos = false;
+	bool bOriginalUseGrid = false;
+	bool bStarted = false;
 };

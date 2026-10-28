@@ -1,663 +1,397 @@
 // Copyright 2023 Natsu Neko, Inc. All Rights Reserved.
 
 #include "WallPaper.h"
-#include "Interfaces/IPluginManager.h"
-#include "DetailLayoutBuilder.h"
-#include "EditorUtilitySubsystem.h"
-#include "ISettingsSection.h"
-#include "WallPaperSetting.h"
-#include "Settings/EditorStyleSettings.h"
+
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "Editor.h"
-#include "Editor/EditorEngine.h"
 #include "Engine/Texture.h"
-#include "LevelEditor.h"
-#include "LevelEditorActions.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Commands/Commands.h"
+#include "Framework/Commands/UICommandList.h"
 #include "HAL/FileManager.h"
-#include "Misc/ConfigCacheIni.h"
-#include "Misc/MessageDialog.h"
+#include "ISettingsModule.h"
+#include "ISettingsSection.h"
+#include "LevelEditor.h"
+#include "Materials/Material.h"
+#include "Misc/Paths.h"
+#include "Settings/EditorStyleSettings.h"
+#include "Sources/WallpaperList.h"
 #include "Sources/WallpaperSource.h"
 #include "Styling/AppStyle.h"
 #include "Styling/WallpaperStyleApplier.h"
+#include "ToolMenus.h"
+#include "WallPaperEditor.h"
+#include "WallPaperSetting.h"
 #include "Watcher/WallpaperDirectoryWatcher.h"
-
+#include "Widgets/Input/SButton.h"
 
 #define LOCTEXT_NAMESPACE "FWallPaperModule"
 
-class WallpaperCommands:public TCommands<WallpaperCommands>
-{
-public:
-	WallpaperCommands()
-		: TCommands<WallpaperCommands>(
-			"WallpaperUICommand",
-			NSLOCTEXT("Contexts", "WallpaperUICommands", "Wallpaper UI Command"),
-			NAME_None, FAppStyle::GetAppStyleSetName()
-		)
-	{ }
+DEFINE_LOG_CATEGORY_STATIC(LogWallpaper, Log, All);
 
-	virtual void RegisterCommands() override
+namespace
+{
+	const FName WallpaperToolbarName(TEXT("LevelEditor.LevelEditorToolBar.PlayToolBar"));
+	constexpr float RefreshDelaySeconds = 0.25f;
+
+	bool IsWallpaperAssetPath(const FString& Path)
 	{
-		UI_COMMAND(Excution, "Excution", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift|EModifierKey::Control,EKeys::C));
-		//UI_COMMAND( Excution, "Excution", "Random Wallpaper", EUserInterfaceActionType::Button, FInputChord() );
+		return Path == TEXT("/Game/Wallpaper") || Path.StartsWith(TEXT("/Game/Wallpaper/"));
 	}
-	TSharedPtr<FUICommandInfo> Excution;
-	
-};
+
+	FString NormalizeVideoPath(const FString& Path)
+	{
+		FString FullPath = FPaths::ConvertRelativePathToFull(Path);
+		FPaths::MakeStandardFilename(FullPath);
+		return FullPath.ToLower();
+	}
+
+	class FWallpaperCommands : public TCommands<FWallpaperCommands>
+	{
+	public:
+		FWallpaperCommands()
+			: TCommands<FWallpaperCommands>(TEXT("WallpaperUICommand"), LOCTEXT("WallpaperCommands", "Wallpaper"), NAME_None, FAppStyle::GetAppStyleSetName())
+		{
+		}
+
+		virtual void RegisterCommands() override
+		{
+			// Keep the command identifier so existing user key bindings remain valid.
+			UI_COMMAND(Excution, "Random Wallpaper", "Choose random wallpapers", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift | EModifierKey::Control, EKeys::C));
+		}
+
+		TSharedPtr<FUICommandInfo> Excution;
+	};
+}
+
+FWallPaperModule::FWallPaperModule() = default;
+FWallPaperModule::~FWallPaperModule() = default;
 
 void FWallPaperModule::StartupModule()
 {
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+	if (IsRunningCommandlet() || !GEditor || !FSlateApplication::IsInitialized())
+	{
+		return;
+	}
 
-	FString AssetPath = "/WallPaper/WallPaperEngine/UMG";
-	UPackage* EditorTexturePack = CreatePackage(*AssetPath);
-	WallpaperPlayer = NewObject<UWallPaperBrush>(EditorTexturePack, FName("WallpaperPlayer"), RF_MarkAsRootSet);
-	WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
-	bLasyType = StyleSettings->UseWallpaperEngine;
+	bStarted = true;
+	EditorStyleSettings = GetMutableDefault<UEditorStyleSettings>();
+	bOriginalUseGrid = EditorStyleSettings->bUseGrid;
+	EditorTimerManager = GEditor->GetTimerManager();
+	StyleApplier = MakeUnique<FWallpaperStyleApplier>();
+	StyleApplier->CaptureOriginalStyle();
+	Settings = GetMutableDefault<UWallPaperSetting>();
+	WallpaperPlayer.Reset(NewObject<UWallPaperBrush>(GetTransientPackage(), NAME_None, RF_Transient));
+	Wallpapers = MakeUnique<FWallpaperList>();
 
+	RegisterSettings();
+	RegisterAssetEvents();
+	// Create only the user's input directory, never a duplicate asset cache.
+	IFileManager::Get().MakeDirectory(*(FPaths::ProjectContentDir() / TEXT("Wallpaper")), true);
+	RefreshWallpapers();
+	OnSettingsModified();
 
-	FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([this](float Time)
-		{
-			CheckTimer();
-			ChangeRandomWallpaper();
-			return false;
-		}), 1.f);
-
-
-
-	ImportWallpaper();
-	GetMutableDefault<UEditorStyleSettings>()->bUseGrid = StyleSettings->EditorUseGrid;
-	ApplyMenuBackGround();
-	InitialEditorStyle();
-
-	ApplyThemeStyle();
-	SetSetting();
-	CreateWatcher();
-
-	WallpaperCommands::Register();
-	FLevelEditorModule& LevelEditorModule = FModuleManager::Get().LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-	
-	TSharedRef<FUICommandList> CommandList = LevelEditorModule.GetGlobalLevelEditorActions();
-	//CommandList->MapAction(WallpaperCommands::Get().Excution,FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::NewLevel));
-	CommandList->MapAction(WallpaperCommands::Get().Excution, 
-		FExecuteAction::CreateLambda([this]
-		{
-			ChangeRandomWallpaper();
-		}),
-		FCanExecuteAction()
-	);
-
-	//GEditor->GetTimerManager()->SetTimerForNextTick([this](){CheckTimer();});
-	
-
-
-	UToolMenus::RegisterStartupCallback(
-		FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FWallPaperModule::RegisterMenus));
-	
+	FWallpaperCommands::Register();
+	GlobalCommands = FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor")).GetGlobalLevelEditorActions();
+	GlobalCommands->MapAction(FWallpaperCommands::Get().Excution, FExecuteAction::CreateRaw(this, &FWallPaperModule::ChangeRandomWallpaper));
+	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FWallPaperModule::RegisterMenus));
 }
 
 void FWallPaperModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
+	if (!bStarted)
+	{
+		return;
+	}
+	bStarted = false;
+	FTSTicker::RemoveTicker(RefreshTicker);
+	RefreshTicker.Reset();
+	if (TSharedPtr<FTimerManager> TimerManager = EditorTimerManager.Pin())
+	{
+		TimerManager->ClearTimer(WallpaperTimer);
+	}
+	EditorTimerManager.Reset();
 	FWallpaperDirectoryWatcher::Stop(DirectoryWatcherHandle, WatchedDirectory);
-	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").UnregisterSettings("Editor", "General", "WallPaper");
+	UnregisterAssetEvents();
+
+	if (SettingsSection)
+	{
+		SettingsSection->OnModified().Unbind();
+		SettingsSection->OnSaveDefaults().Unbind();
+		SettingsSection->OnResetDefaults().Unbind();
+		SettingsSection.Reset();
+	}
+	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>(TEXT("Settings")))
+	{
+		SettingsModule->UnregisterSettings(TEXT("Editor"), TEXT("General"), TEXT("WallPaper"));
+	}
+	if (GlobalCommands && FWallpaperCommands::IsRegistered())
+	{
+		GlobalCommands->UnmapAction(FWallpaperCommands::Get().Excution);
+	}
+	GlobalCommands.Reset();
+	FWallpaperCommands::Unregister();
+
 	UToolMenus::UnRegisterStartupCallback(this);
 	UToolMenus::UnregisterOwner(this);
-	WallpaperCommands::Unregister();
-	StyleSettings->ResetStyleColor();
-	//Clear Cache
-	FString PluginsPath = FPaths::ProjectPluginsDir()/"Wallpaper";
-	if(!IFileManager::Get().DirectoryExists(*PluginsPath))
-    	{
-    		PluginsPath = FPaths::EnginePluginsDir()/"Wallpaper";
-    	}
-    		
-    	FString TargetFilePath = PluginsPath/"Content/Cache";
-    	if(IFileManager::Get().DirectoryExists(*TargetFilePath))
-    	{
-    		IFileManager::Get().DeleteDirectory(*(TargetFilePath),false,true);
-    	}
-}
-
-bool FWallPaperModule::OnSettingModified()
-{
-	WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
-	if (bLasyType != StyleSettings->UseWallpaperEngine || LastWallpaperPath != StyleSettings->WallPaperDirectoryPath.
-		Path)
+	if (FSlateApplication::IsInitialized() && !IsEngineExitRequested())
 	{
-		bLasyType = StyleSettings->UseWallpaperEngine;
-		TArray<struct FFileChangeData> FileChanges;
-		Reimport(FileChanges);
-		CreateWatcher();
+		UToolMenus::Get()->RefreshMenuWidget(WallpaperToolbarName);
 	}
 
-	GetMutableDefault<UEditorStyleSettings>()->bUseGrid = StyleSettings->EditorUseGrid;
-	ApplyMenuBackGround();
-	ApplyThemeStyle();
-	CheckTimer();
+	StyleApplier->RestoreOriginalStyle();
+	if (EditorStyleSettings.IsValid())
+	{
+		EditorStyleSettings->bUseGrid = bOriginalUseGrid;
+	}
+	EditorStyleSettings.Reset();
+	WallpaperPlayer->StopAll();
+	WallpaperPlayer.Reset();
+	StyleApplier.Reset();
+	Wallpapers.Reset();
+	Settings = nullptr;
+}
 
-	FWallpaperStyleApplier::ApplyWindowOpacity(StyleSettings->EditorOpacity, StyleSettings->PanelOpacity);
+void FWallPaperModule::RegisterSettings()
+{
+	SettingsSection = FModuleManager::LoadModuleChecked<ISettingsModule>(TEXT("Settings"))
+						  .RegisterSettings(TEXT("Editor"), TEXT("General"), TEXT("WallPaper"), LOCTEXT("SettingsName", "Wallpaper"), LOCTEXT("SettingsDescription", "Customize editor wallpapers and colors."), Settings);
+	if (!SettingsSection)
+	{
+		return;
+	}
+	SettingsSection->OnModified().BindRaw(this, &FWallPaperModule::OnSettingsModified);
+	SettingsSection->OnSaveDefaults().BindLambda(
+		[this]()
+		{
+			Settings->UpdateGlobalUserConfigFile();
+			return true;
+		});
+	SettingsSection->OnResetDefaults().BindRaw(this, &FWallPaperModule::ResetSettings);
+}
+
+bool FWallPaperModule::OnSettingsModified()
+{
+	Settings->EditorOpacity = FMath::Clamp(Settings->EditorOpacity, 0.0f, 1.0f);
+	Settings->PanelOpacity = FMath::Clamp(Settings->PanelOpacity, 0.0f, 1.0f);
+	Settings->Time = FMath::Max(Settings->Time, 1.0f);
+	if (bLastUseVideo != Settings->UseWallpaperEngine || LastSourcePath != Settings->WallPaperDirectoryPath.Path)
+	{
+		RefreshWallpapers();
+	}
+	EditorStyleSettings->bUseGrid = Settings->EditorUseGrid;
+	StyleApplier->ApplyMenuBackground(Settings->Menu_Background);
+	StyleApplier->ApplyThemeColors(Settings->StyleColors);
+	StyleApplier->ApplyWindowOpacity(Settings->EditorOpacity, Settings->PanelOpacity);
+	UpdateTimer();
 	return true;
 }
 
-
-void FWallPaperModule::PluginButtonClicked()
+bool FWallPaperModule::ResetSettings()
 {
-	EditorWidget = LoadObject<UEditorUtilityWidgetBlueprint>(
-		NULL,TEXT("/WallPaper/WallPaperEngine/UMG/WallPaperEditor"));
-
-	if (EditorWidget)
-	{
-		UEditorUtilitySubsystem* EditorUtilitySubsystem = GEditor->GetEditorSubsystem<UEditorUtilitySubsystem>();
-		EditorUtilitySubsystem->SpawnAndRegisterTab(EditorWidget);
-	}
+	Settings->ResetToDefaults();
+	Settings->EditorUseGrid = bOriginalUseGrid;
+	OnSettingsModified();
+	Settings->SaveConfig();
+	Settings->UpdateGlobalUserConfigFile();
+	return true;
 }
-
-
-void FWallPaperModule::InitialEditorStyle()
-{
-	FWallpaperStyleApplier::MakeGraphPanelTransparent();
-
-	if (IsValid(WallpaperPlayer))
-	{
-		if (WallpaperPlayer->CanPlayvideo())
-		{
-			if (Wallpaperlist.Num() == 0)
-			{
-				UTexture* EditorTexture = LoadObject<UTexture>(
-					NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/Default_1"));
-				UTexture* PanelTexture = LoadObject<UTexture>(
-					NULL,TEXT("/WallPaper/WallPaperEngine/Backgound/Default_2"));
-				FWallpaperStyleApplier::ApplyEditorTexture(EditorTexture, StyleSettings->EditorOpacity);
-				FWallpaperStyleApplier::ApplyPanelTexture(PanelTexture, StyleSettings->PanelOpacity);
-			}
-			else if(LastWallpaperNum != Wallpaperlist.Num())
-			{
-				LastWallpaperNum = Wallpaperlist.Num();
-				int RamdomEditor = FMath::RandRange(0, FMath::Max(Wallpaperlist.Num() - 2, 0));
-				int RandomPanel = FMath::RandRange(0, Wallpaperlist.Num() - 1);
-				HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
-				HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
-			}
-		}
-		else
-		{
-			if (Wallpaperlist.Num() > 0&&LastWallpaperNum != Wallpaperlist.Num())
-			{
-				LastWallpaperNum = Wallpaperlist.Num();
-				int RamdomEditor = FMath::RandRange(0, FMath::Max(Wallpaperlist.Num() - 2, 0));
-				int RandomPanel = FMath::RandRange(0, Wallpaperlist.Num() - 1);
-				ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
-				ApplyPanelBGWithDx12(Wallpaperlist[RandomPanel]);
-			}
-		}
-	}
-}
-
-void FWallPaperModule::ApplyMenuBackGround()
-{
-	FWallpaperStyleApplier::ApplyMenuBackground(StyleSettings->Menu_Background);
-}
-
-void FWallPaperModule::ApplyEditorBGWithDx12(TSharedPtr<FString> Item)
-{
-	int index = FindWallpaperIndex(Item);
-	if (!WallpaperPath.IsValidIndex(index))
-	{
-		return;
-	}
-
-	const FString FilePath = *WallpaperPath[index];
-	UTexture* Texture = LoadObject<UTexture>(NULL, *FilePath);
-	FWallpaperStyleApplier::ApplyEditorTexture(Texture, StyleSettings->EditorOpacity);
-}
-
-void FWallPaperModule::ApplyPanelBGWithDx12(TSharedPtr<FString> Item)
-{
-	int index = FindWallpaperIndex(Item);
-	if (!WallpaperPath.IsValidIndex(index))
-	{
-		return;
-	}
-
-	const FString FilePath = *WallpaperPath[index];
-	UTexture* Texture = LoadObject<UTexture>(NULL, *FilePath);
-	FWallpaperStyleApplier::ApplyPanelTexture(Texture, StyleSettings->PanelOpacity);
-}
-
-
-void FWallPaperModule::ApplyThemeStyle()
-{
-	FWallpaperStyleApplier::ApplyThemeColors(StyleSettings->StyleColors, LastUID);
-}
-
 
 void FWallPaperModule::RegisterMenus()
 {
-	// Owner will be used for cleanup in call to UToolMenus::UnregisterOwner
 	FToolMenuOwnerScoped OwnerScoped(this);
-	/*FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
-	TSharedRef<  FUICommandList > CommandBindings = LevelEditorModule.GetGlobalLevelEditorActions();
-	
-	
-	CommandBindings->MapAction(WallpaperCommands::Get().Excution,
-		FExecuteAction::CreateStatic(&FWallPaperModule::ImportPicTheme),
-		FCanExecuteAction()
-		);*/
-	
-	
-
-
-	TSharedRef<SWidget> WallpaperWidget = SNew(SHorizontalBox)
-
-		+ SHorizontalBox::Slot()
-		  .AutoWidth()
-		  .VAlign(VAlign_Center)
-		[
-			SNew(SCheckBox)
-		.ToolTipText(LOCTEXT("CheckBoxTooltip", "Enable Wallpaper engine"))
-		.IsChecked_Lambda(
-				               [this]() -> ECheckBoxState
-				               {
-					               return StyleSettings->UseWallpaperEngine
-						                      ? ECheckBoxState::Checked
-						                      : ECheckBoxState::Unchecked;
-				               })
-		.OnCheckStateChanged_Lambda([this](ECheckBoxState InCheckBoxState)
-			               {
-				               if (InCheckBoxState == ECheckBoxState::Checked)
-				               {
-					               StyleSettings->UseWallpaperEngine = true;
-				               }
-				               else
-				               {
-					               StyleSettings->UseWallpaperEngine = false;
-				               }
-				               WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
-				               TArray<struct FFileChangeData> FileChanges;
-				               Reimport(FileChanges);
-								CreateWatcher();
-			               })
-		]
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SAssignNew(WallPaperEditorComboBox, SComboBox< TSharedPtr<FString> >)
-			.OptionsSource(&Wallpaperlist)
-
-			//.InitiallySelectedItem(Wallpaperlist[10])
-			.OnGenerateWidget_Lambda([](TSharedPtr<FString> Item)
-			{
-				return SNew(STextBlock)
-					.Text(FText::FromString(*Item.Get()));
-			})
-			.OnSelectionChanged_Lambda([this](TSharedPtr<FString> Item, ESelectInfo::Type SelectionType)
-			{
-				HandleEditorSelectionChanged(Item);
-			})
-			.ComboBoxStyle(FAppStyle::Get(), "SimpleComboBox")
-			.Content()
-			[
-				SNew(STextBlock)
-				.Text_Raw(this, &FWallPaperModule::GetEditorComboBoxContent)
-			]
-
-		]
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SAssignNew(WallPaperPanelComboBox, SComboBox< TSharedPtr<FString> >)
-			.OptionsSource(&Wallpaperlist)
-
-			.OnGenerateWidget_Lambda([](TSharedPtr<FString> Item)
-			{
-				return SNew(STextBlock)
-					.Text(FText::FromString(*Item.Get()));
-			})
-			.OnSelectionChanged_Lambda([this](TSharedPtr<FString> Item, ESelectInfo::Type SelectionType)
-			{
-				HandlePanelSelectionChanged(Item);
-			})
-			.ComboBoxStyle(FAppStyle::Get(), "SimpleComboBox")
-			.Content()
-			[
-				SNew(STextBlock)
-				.Text_Raw(this, &FWallPaperModule::GetPanelComboBoxContent)
-
-			]
-			]
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SNew(SButton)
-			 .OnClicked_Lambda([this]()
-			 {
-				 ChangeRandomWallpaper();
-				 return FReply::Handled();
-			 })
-			.Text(LOCTEXT("RandomWallpaper", "Random"))
-
-		];
-
-
-
+	const auto RandomClicked = [this]()
 	{
-		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.PlayToolBar");
-		{
-			FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("PluginTools");
-			{
-				//ToolbarMenu->re
-				FToolMenuEntry& Entry = Section.
-					AddEntry(FToolMenuEntry::InitWidget("Wallpaper", WallpaperWidget,
-					                                    LOCTEXT("Wallpaper", "WallpaperEditor")));
-				Entry.SetCommandList(PluginCommands);
-			}
-		}
-	}
+		ChangeRandomWallpaper();
+		return FReply::Handled();
+	};
+	const TSharedRef<SWidget> RandomButton = SNew(SButton).Text(LOCTEXT("RandomWallpaper", "Random")).OnClicked_Lambda(RandomClicked);
+	UToolMenu* Toolbar = UToolMenus::Get()->ExtendMenu(WallpaperToolbarName);
+	Toolbar->FindOrAddSection(TEXT("PluginTools")).AddEntry(FToolMenuEntry::InitWidget(TEXT("Wallpaper"), RandomButton, LOCTEXT("WallpaperToolbar", "Wallpaper")));
 }
 
 void FWallPaperModule::ChangeRandomWallpaper()
 {
-	UE_LOG(LogTemp,Log,TEXT("Change"));
-	if(Wallpaperlist.Num()>2)
+	for (EWallpaperTarget Target : {EWallpaperTarget::Editor, EWallpaperTarget::Panel})
 	{
-		if(WallpaperPlayer->CanPlayvideo())
-		{
-			int RamdomEditor = FMath::RandRange(0, FMath::Max(Wallpaperlist.Num() - 2, 0));
-			int RandomPanel = FMath::RandRange(0, Wallpaperlist.Num() - 1);
-			HandleEditorSelectionChanged(Wallpaperlist[RamdomEditor]);
-			HandlePanelSelectionChanged(Wallpaperlist[RandomPanel]);
-		}
-		else
-		{
-			int RamdomEditor = FMath::RandRange(0, FMath::Max(Wallpaperlist.Num() - 2, 0));
-			int RandomPanel = FMath::RandRange(0, Wallpaperlist.Num() - 1);
-			ApplyEditorBGWithDx12(Wallpaperlist[RamdomEditor]);
-			ApplyPanelBGWithDx12(Wallpaperlist[RandomPanel]);
-		}
+		Wallpapers->SelectRandom(Target);
+		ApplySelection(Target);
 	}
 }
 
-
-void FWallPaperModule::SetSetting()
+void FWallPaperModule::ApplySelection(EWallpaperTarget Target)
 {
-	SettingS = FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").RegisterSettings("Editor", "General",
-		TEXT("WallPaper"),
-		FText::FromString("WallPaper"),
-		FText::FromString("Setting For Wallpaper"),
-		GetMutableDefault<UWallPaperSetting>());
-	SettingS->OnModified().BindRaw(this, &FWallPaperModule::OnSettingModified);
-	SettingS->OnSaveDefaults().BindLambda([=]()-> bool
+	const TSharedPtr<FWallpaperItem> Item = Wallpapers->GetSelection(Target);
+	if (!Item)
 	{
-		GetMutableDefault<UWallPaperSetting>()->UpdateGlobalUserConfigFile();
-		return true;
-	});
-	SettingS->OnResetDefaults().BindLambda([this]()-> bool
-	{
-		StyleSettings->ResetStyleColor();
-		StyleSettings->InitCoreStyle();
-		InitialEditorStyle();
-		ApplyThemeStyle();
-		TArray<FString> ConfigNeedToReset;
-		FString ConfigSectionName = GetMutableDefault<UWallPaperSetting>()->GetClass()->GetPathName();
-		ConfigNeedToReset.Add(GetMutableDefault<UWallPaperSetting>()->GetClass()->GetConfigName());
-		ConfigNeedToReset.Add(GetMutableDefault<UWallPaperSetting>()->GetGlobalUserConfigFilename());
-		//ConfigNeedToReset.Add(GetMutableDefault<UWallPaperSetting>()->Get);
-		for (FString ConfigFileName : ConfigNeedToReset)
-		{
-			//GConfig->GetString(*ConfigSectionName,)
-			GConfig->EmptySection(*ConfigSectionName, ConfigFileName);
-			GConfig->Flush(false);
-		}
-		FConfigCacheIni::LoadGlobalIniFile(ConfigNeedToReset[0], *FPaths::GetBaseFilename(ConfigNeedToReset[0]),
-		                                   nullptr, true);
-		GetMutableDefault<UWallPaperSetting>()->ReloadConfig(nullptr, nullptr,
-		                                                     UE::LCPF_PropagateToInstances |
-		                                                     UE::LCPF_PropagateToChildDefaultObjects);
-		//FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("ConfigReset_RestartEditor", "Config has been reset.Restart Editor to take effect."));
-
-
-		return true;
-	});
-}
-
-
-
-void FWallPaperModule::CheckTimer()
-{
-	
-	FTimerManager& timerManager = GEditor->GetTimerManager().Get();
-	if (handle.IsValid())
-	{
-		timerManager.ClearTimer(handle);
+		WallpaperPlayer->Stop(Target);
+		return;
 	}
-	//FTimerManager& timerManager = GEditorIni.end()
-	if (StyleSettings->bEnableTimer && Wallpaperlist.Num() > 0)
-	{
-		if (handle.IsValid())
-		{
-			timerManager.ClearTimer(handle);
-		}
-		auto lambda = [this]()
-		{
-			ChangeRandomWallpaper();
-		};
-		FTimerDelegate TimerDelegate;
-		TimerDelegate.BindLambda(lambda);
-		float TImerDuration = FMath::Max(StyleSettings->Time, 1.0f);
-		timerManager.SetTimer(handle, TimerDelegate, TImerDuration * 60, true);
-	}
-}
 
-void FWallPaperModule::CreateWatcher()
-{
-	if (Wallpaperlist.Num() > 0)
+	UObject* Resource = nullptr;
+	if (Item->bIsVideo)
 	{
-		if (WallpaperPlayer->CanPlayvideo())
+		if (bReloadVideos || ChangedVideoPaths.Contains(NormalizeVideoPath(Item->ResourcePath)))
 		{
-			const FString Path = (StyleSettings->WallPaperDirectoryPath.Path) + "/steamapps/workshop/content";
-			FWallpaperDirectoryWatcher::Watch(
-				DirectoryWatcherHandle,
-				WatchedDirectory,
-				Path,
-				IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FWallPaperModule::Reimport));
+			WallpaperPlayer->Stop(Target);
 		}
-		else
-		{
-			const FString FilePath = FPaths::ProjectContentDir() / "Wallpaper";
-			FWallpaperDirectoryWatcher::Watch(
-				DirectoryWatcherHandle,
-				WatchedDirectory,
-				FilePath,
-				IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FWallPaperModule::Reimport));
-		}
+		Resource = WallpaperPlayer->Play(Item->ResourcePath, Target);
 	}
 	else
+	{
+		WallpaperPlayer->Stop(Target);
+		Resource = LoadObject<UTexture>(nullptr, *Item->ResourcePath);
+	}
+	if (!Resource)
+	{
+		UE_LOG(LogWallpaper, Warning, TEXT("Could not open wallpaper: %s"), *Item->ResourcePath);
+		return;
+	}
+	const float Opacity = Target == EWallpaperTarget::Editor ? Settings->EditorOpacity : Settings->PanelOpacity;
+	StyleApplier->ApplyResource(Resource, Target, Opacity);
+}
+
+void FWallPaperModule::RefreshWallpapers()
+{
+	FTSTicker::RemoveTicker(RefreshTicker);
+	RefreshTicker.Reset();
+	TArray<FWallpaperItem> Items;
+	if (Settings->UseWallpaperEngine)
+	{
+		Items = FWallpaperSource::ScanWallpaperEngine(Settings->WallPaperDirectoryPath.Path);
+		if (Items.IsEmpty())
+		{
+			UE_LOG(LogWallpaper, Warning, TEXT("No MP4 wallpapers found under %s; using images until videos are available."), *Settings->WallPaperDirectoryPath.Path);
+		}
+	}
+	bUsingProjectTextures = Items.IsEmpty();
+	if (bUsingProjectTextures)
+	{
+		Items = FWallpaperSource::ScanProjectTextures();
+	}
+	bLastUseVideo = Settings->UseWallpaperEngine;
+	LastSourcePath = Settings->WallPaperDirectoryPath.Path;
+	Wallpapers->SetItems(MoveTemp(Items));
+	ApplySelection(EWallpaperTarget::Editor);
+	ApplySelection(EWallpaperTarget::Panel);
+	ChangedVideoPaths.Reset();
+	bReloadVideos = false;
+	UpdateWatcher();
+	UpdateTimer();
+}
+
+void FWallPaperModule::UpdateTimer()
+{
+	const TSharedPtr<FTimerManager> TimerManager = EditorTimerManager.Pin();
+	if (!TimerManager)
+	{
+		return;
+	}
+	if (!Settings->bEnableTimer || Wallpapers->GetItems().Num() < 2)
+	{
+		TimerManager->ClearTimer(WallpaperTimer);
+		return;
+	}
+	const float Interval = FMath::Max(Settings->Time, 1.0f) * 60.0f;
+	if (!TimerManager->IsTimerActive(WallpaperTimer) || !FMath::IsNearlyEqual(TimerManager->GetTimerRate(WallpaperTimer), Interval))
+	{
+		TimerManager->SetTimer(WallpaperTimer, FTimerDelegate::CreateRaw(this, &FWallPaperModule::ChangeRandomWallpaper), Interval, true);
+	}
+}
+
+void FWallPaperModule::UpdateWatcher()
+{
+	if (!Settings->UseWallpaperEngine)
 	{
 		FWallpaperDirectoryWatcher::Stop(DirectoryWatcherHandle, WatchedDirectory);
+		return;
 	}
+	FWallpaperDirectoryWatcher::Watch(DirectoryWatcherHandle, WatchedDirectory, Settings->WallPaperDirectoryPath.Path / TEXT("steamapps/workshop/content"),
+		IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FWallPaperModule::OnDirectoryChanged));
 }
 
-FText FWallPaperModule::GetEditorComboBoxContent() const
+void FWallPaperModule::QueueWallpaperRefresh()
 {
-	FString OutText = "Editor";
-	return FText::FromString(OutText);
-}
-
-void FWallPaperModule::Reimport(const TArray<struct FFileChangeData>& FileChanges)
-{
-	UE_LOG(LogTemp, Log, TEXT("FIle is reimport"));
-	ImportWallpaper();
-	InitialEditorStyle();
-}
-
-
-FText FWallPaperModule::GetPanelComboBoxContent() const
-{
-	FString OutText = "Panel"; //
-	return FText::FromString(OutText);
-}
-
-void FWallPaperModule::ImportWallpaper()
-{
-	WallpaperPath.Reset();
-	Wallpaperlist.Reset();
-	LastWallpaperPath = StyleSettings->WallPaperDirectoryPath.Path;
-
-	TArray<FWallpaperItem> Items;
-	if (WallpaperPlayer->CanPlayvideo())
-	{
-		Items = FWallpaperSource::ScanWallpaperEngine(StyleSettings->WallPaperDirectoryPath.Path);
-		if (Items.Num() == 0)
-		{
-			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("WallpaperTip",
-			                                              "Your wallpaper engine path is no vaild.\n please go to editor setting -> wallpaper check you setting"));
-			StyleSettings->UseWallpaperEngine = false;
-			WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
-			bool bFoundProjectTextures = false;
-			Items = FWallpaperSource::ScanProjectTextures(bFoundProjectTextures);
-			if (!bFoundProjectTextures)
-			{
-				LastWallpaperNum = -1;
-			}
-		}
-	}
-	else
-	{
-		StyleSettings->UseWallpaperEngine = false;
-		WallpaperPlayer->SetCanPlayVideo(StyleSettings->UseWallpaperEngine);
-		bool bFoundProjectTextures = false;
-		Items = FWallpaperSource::ScanProjectTextures(bFoundProjectTextures);
-		if (!bFoundProjectTextures)
-		{
-			LastWallpaperNum = -1;
-		}
-	}
-
-	MaxNum = Items.Num();
-	for (const FWallpaperItem& Item : Items)
-	{
-		Wallpaperlist.Add(MakeShared<FString>(Item.DisplayName));
-		WallpaperPath.Add(MakeShared<FString>(Item.ResourcePath));
-	}
-
-	UToolMenus::Get()->RefreshAllWidgets();
-}
-
-void FWallPaperModule::ImportPicTheme()
-{
-	WallpaperPath.Reset();
-	Wallpaperlist.Reset();
-
-	bool bFoundProjectTextures = false;
-	const TArray<FWallpaperItem> Items = FWallpaperSource::ScanProjectTextures(bFoundProjectTextures);
-	if (!bFoundProjectTextures)
-	{
-		LastWallpaperNum = -1;
-	}
-
-	MaxNum = Items.Num();
-	for (const FWallpaperItem& Item : Items)
-	{
-		Wallpaperlist.Add(MakeShared<FString>(Item.DisplayName));
-		WallpaperPath.Add(MakeShared<FString>(Item.ResourcePath));
-	}
-}
-
-
-TSharedRef<SWidget> FWallPaperModule::HandleGenerateWidget(TSharedPtr<FString> Item) const
-{
-	FString StringItem = Item.IsValid() ? *Item : FString();
-
-	return SNew(STextBlock)
-		.Text(FText::FromString(StringItem)); //.Margin(FMargin(0.0,15.0,0.0,0.0))
-}
-
-int FWallPaperModule::FindWallpaperIndex(TSharedPtr<FString> Item)
-{
-	if (!Item.IsValid() || Wallpaperlist.Num() == 0)
-	{
-		return INDEX_NONE;
-	}
-
-	int Num = FMath::RandRange(0, Wallpaperlist.Num() - 1);
-	//找到并且播放
-	for (int32 OptionIndex = 0; OptionIndex < Wallpaperlist.Num(); ++OptionIndex)
-	{
-		if (Wallpaperlist[OptionIndex] == Item || (Wallpaperlist[OptionIndex].IsValid() && *Wallpaperlist[OptionIndex] == *Item))
-		{
-			Num = OptionIndex;
-			break;
-		}
-	}
-	return Num;
-}
-
-void FWallPaperModule::ApplyWallpaperToTarget(TSharedPtr<FString> Item, EWallpaperTarget Target)
-{
-	if (!IsValid(WallpaperPlayer) || !Item.IsValid())
+	if (!bStarted)
 	{
 		return;
 	}
-
-	const int WallpaperIndex = FindWallpaperIndex(Item);
-	if (!WallpaperPath.IsValidIndex(WallpaperIndex))
-	{
-		return;
-	}
-
-	if (!WallpaperPlayer->CanPlayvideo())
-	{
-		if (Target == EWallpaperTarget::Editor)
+	FTSTicker::RemoveTicker(RefreshTicker);
+	const FTickerDelegate RefreshDelegate = FTickerDelegate::CreateLambda(
+		[this](float)
 		{
-			ApplyEditorBGWithDx12(Item);
-		}
-		else
-		{
-			ApplyPanelBGWithDx12(Item);
-		}
-		return;
-	}
-
-	if (Target == EWallpaperTarget::Editor)
-	{
-		FWallpaperStyleApplier::ApplyEditorMaterial(WallpaperPlayer->GetEditorMaterial(), StyleSettings->EditorOpacity);
-		IsEditorVideoMatarial = true;
-		WallpaperPlayer->EditorPlay(*WallpaperPath[WallpaperIndex]);
-	}
-	else
-	{
-		FWallpaperStyleApplier::ApplyPanelMaterial(WallpaperPlayer->GetPanelMaterial(), StyleSettings->PanelOpacity);
-		IsPanelVideoMatarial = true;
-		WallpaperPlayer->PanelPlay(*WallpaperPath[WallpaperIndex]);
-	}
+			RefreshTicker.Reset();
+			RefreshWallpapers();
+			return false;
+		});
+	RefreshTicker = FTSTicker::GetCoreTicker().AddTicker(RefreshDelegate, RefreshDelaySeconds);
 }
 
-
-void FWallPaperModule::HandleEditorSelectionChanged(TSharedPtr<FString> Item)
+void FWallPaperModule::OnDirectoryChanged(const TArray<FFileChangeData>& FileChanges)
 {
-	if (IsValid(WallpaperPlayer))
+	bool bNeedsRefresh = false;
+	for (const FFileChangeData& Change : FileChanges)
 	{
-		ApplyWallpaperToTarget(Item, EWallpaperTarget::Editor);
-
-		//随机主题颜色
-		if (StyleSettings->RandomMainThemeColor)
+		const FString Extension = FPaths::GetExtension(Change.Filename);
+		if (Extension.Equals(TEXT("mp4"), ESearchCase::IgnoreCase))
 		{
-			FLinearColor RandomColor = FLinearColor::MakeFromHSV8(FMath::Rand() * 360, 0.6 * 255, 0.1 * 255);
-			RandomColor.A = 0.2;
-			StyleSettings->StyleColors.StyleColors[(int)EStyleColor::Recessed] = RandomColor;
-			ApplyThemeStyle();
+			ChangedVideoPaths.Add(NormalizeVideoPath(Change.Filename));
+			bNeedsRefresh = true;
+		}
+		else if (Change.Action == FFileChangeData::FCA_RescanRequired || Change.Action == FFileChangeData::FCA_Removed || Extension.IsEmpty() || IFileManager::Get().DirectoryExists(*Change.Filename))
+		{
+			// Overflow and directory moves may not identify individual video files.
+			bReloadVideos = true;
+			bNeedsRefresh = true;
 		}
 	}
+	if (bNeedsRefresh)
+	{
+		QueueWallpaperRefresh();
+	}
 }
 
-void FWallPaperModule::HandlePanelSelectionChanged(TSharedPtr<FString> Item)
+void FWallPaperModule::OnAssetChanged(const FAssetData& Asset)
 {
-	if (IsValid(WallpaperPlayer))
+	if (bUsingProjectTextures && IsWallpaperAssetPath(Asset.PackagePath.ToString()))
 	{
-		ApplyWallpaperToTarget(Item, EWallpaperTarget::Panel);
+		QueueWallpaperRefresh();
 	}
-	//UE_LOG(LogTemp, Warning, TEXT("WallpaperPlayer is no valid"))
 }
+
+void FWallPaperModule::OnAssetRenamed(const FAssetData& Asset, const FString& OldObjectPath)
+{
+	if (bUsingProjectTextures && (IsWallpaperAssetPath(Asset.PackagePath.ToString()) || IsWallpaperAssetPath(OldObjectPath)))
+	{
+		QueueWallpaperRefresh();
+	}
+}
+
+void FWallPaperModule::RegisterAssetEvents()
+{
+	AssetRegistry = &FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
+	AssetRegistry->OnAssetAdded().AddRaw(this, &FWallPaperModule::OnAssetChanged);
+	AssetRegistry->OnAssetRemoved().AddRaw(this, &FWallPaperModule::OnAssetChanged);
+	AssetRegistry->OnAssetRenamed().AddRaw(this, &FWallPaperModule::OnAssetRenamed);
+	AssetRegistry->OnAssetUpdated().AddRaw(this, &FWallPaperModule::OnAssetChanged);
+	AssetRegistry->OnAssetUpdatedOnDisk().AddRaw(this, &FWallPaperModule::OnAssetChanged);
+	AssetRegistry->OnFilesLoaded().AddRaw(this, &FWallPaperModule::QueueWallpaperRefresh);
+}
+
+void FWallPaperModule::UnregisterAssetEvents()
+{
+	if (AssetRegistry && FModuleManager::Get().IsModuleLoaded(TEXT("AssetRegistry")))
+	{
+		AssetRegistry->OnAssetAdded().RemoveAll(this);
+		AssetRegistry->OnAssetRemoved().RemoveAll(this);
+		AssetRegistry->OnAssetRenamed().RemoveAll(this);
+		AssetRegistry->OnAssetUpdated().RemoveAll(this);
+		AssetRegistry->OnAssetUpdatedOnDisk().RemoveAll(this);
+		AssetRegistry->OnFilesLoaded().RemoveAll(this);
+	}
+	AssetRegistry = nullptr;
+}
+
 #undef LOCTEXT_NAMESPACE
 
 IMPLEMENT_MODULE(FWallPaperModule, WallPaper)

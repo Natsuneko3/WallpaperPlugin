@@ -7,5 +7,5 @@ class FWallpaperSource
 {
 public:
 	static TArray<FWallpaperItem> ScanWallpaperEngine(const FString& SteamRootPath);
-	static TArray<FWallpaperItem> ScanProjectTextures(bool& bOutFoundProjectTextures);
+	static TArray<FWallpaperItem> ScanProjectTextures();
 };

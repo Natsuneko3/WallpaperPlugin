@@ -3,23 +3,42 @@
 #include "CoreMinimal.h"
 #include "Styling/SlateBrush.h"
 #include "Styling/StyleColors.h"
+#include "UObject/GCObject.h"
+#include "WallpaperTarget.h"
 
-class UMaterial;
-class UTexture;
-
-class FWallpaperStyleApplier
+/** Owns the resources and snapshots used while overriding the editor's shared styles. */
+class FWallpaperStyleApplier : public FGCObject
 {
 public:
-	static void MakeGraphPanelTransparent();
-	static void ApplyMenuBackground(FSlateBrush MenuBackground);
-	static void ApplyEditorTexture(UTexture* Texture, float Opacity);
-	static void ApplyPanelTexture(UTexture* Texture, float Opacity);
-	static void ApplyEditorMaterial(UMaterial* Material, float Opacity);
-	static void ApplyPanelMaterial(UMaterial* Material, float Opacity);
-	static void ApplyWindowOpacity(float EditorOpacity, float PanelOpacity);
-	static void ApplyThemeColors(const FStyleColorList& StyleColors, FGuid& LastThemeId);
+	FWallpaperStyleApplier() = default;
+	virtual ~FWallpaperStyleApplier() override;
+	FWallpaperStyleApplier(const FWallpaperStyleApplier&) = delete;
+	FWallpaperStyleApplier& operator=(const FWallpaperStyleApplier&) = delete;
+
+	void CaptureOriginalStyle();
+	void RestoreOriginalStyle();
+	void MakeGraphPanelTransparent();
+	void ApplyResource(UObject* Resource, EWallpaperTarget Target, float Opacity);
+	void ApplyMenuBackground(const FSlateBrush& MenuBackground);
+	void ApplyWindowOpacity(float EditorOpacity, float PanelOpacity);
+	void ApplyThemeColors(const FStyleColorList& StyleColors);
+
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+	virtual FString GetReferencerName() const override;
 
 private:
-	static FSlateBrush MakeBrush(UObject* Resource);
-	static FLinearColor MakeOpacityTint(float Opacity);
+	void RestoreTheme();
+
+	bool bHasOriginalStyle = false;
+	bool bHasOriginalColors = false;
+	TWeakObjectPtr<USlateThemeManager> ThemeManager;
+	FGuid OriginalThemeId;
+	FStyleColorList OriginalColors;
+	FSlateBrush OriginalEditorBrush;
+	FSlateBrush OriginalPanelBrush;
+	FSlateBrush OriginalMenuBrush;
+	FSlateBrush OriginalGraphBrush;
+	FSlateBrush AppliedEditorBrush;
+	FSlateBrush AppliedPanelBrush;
+	FSlateBrush AppliedMenuBrush;
 };
