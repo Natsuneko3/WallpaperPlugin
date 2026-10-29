@@ -155,7 +155,7 @@ void FWallPaperModule::ShutdownModule()
 void FWallPaperModule::RegisterSettings()
 {
 	SettingsSection = FModuleManager::LoadModuleChecked<ISettingsModule>(TEXT("Settings"))
-						  .RegisterSettings(TEXT("Editor"), TEXT("General"), TEXT("WallPaper"), LOCTEXT("SettingsName", "Wallpaper"), LOCTEXT("SettingsDescription", "Customize editor wallpapers and colors."), Settings);
+						  .RegisterSettings(TEXT("Editor"), TEXT("Plugins"),TEXT("WallPaper"), LOCTEXT("SettingsName", "Wallpaper"), LOCTEXT("SettingsDescription", "Customize editor wallpapers and colors."), Settings);
 	if (!SettingsSection)
 	{
 		return;

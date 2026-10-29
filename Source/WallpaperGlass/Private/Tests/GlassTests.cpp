@@ -1,13 +1,17 @@
 #include "Misc/AutomationTest.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
+#include "GlassBlurCache.h"
 #include "GlassMaterial.h"
 #include "GlassUV.h"
 #include "Engine/Texture2D.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Framework/Application/SlateApplication.h"
 #include "MaterialShared.h"
 #include "Materials/Material.h"
 #include "MediaTexture.h"
 #include "RHI.h"
+#include "RenderingThread.h"
 #include "ShaderCompiler.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -43,15 +47,18 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGlassMaterialTest, "Wallpaper.Glass.MaterialCo
 
 bool FGlassMaterialTest::RunTest(const FString&)
 {
-    if (!GShaderCompilingManager || GUsingNullRHI)
+    if (!GShaderCompilingManager || GUsingNullRHI || !FSlateApplication::IsInitialized())
     {
-        AddError(TEXT("Material verification requires a rendering RHI and shader compiler."));
+        AddError(TEXT("Material verification requires Slate, a rendering RHI, and the shader compiler."));
         return false;
     }
     TStrongObjectPtr<UTexture2D> Image(UTexture2D::CreateTransient(16, 16));
     TStrongObjectPtr<UMediaTexture> Video(NewObject<UMediaTexture>());
     Image->UpdateResource();
     Video->UpdateResource();
+    // Media textures acquire their initial 2x2 clear resource on the render thread.
+    FlushRenderingCommands();
+    FGlassBlurCache BlurCache;
     for (UTexture* Texture : {static_cast<UTexture*>(Image.Get()), static_cast<UTexture*>(Video.Get())})
     {
         TStrongObjectPtr<UMaterial> Material(CreateGlassMaterial(Texture));
@@ -67,7 +74,26 @@ bool FGlassMaterialTest::RunTest(const FString&)
         for (const FString& Error : Resource->GetCompileErrors()) AddError(Error);
         TestNotNull(TEXT("Shader map exists"), Resource->GetGameThreadShaderMap());
         TestTrue(TEXT("Shader map compiled successfully"), Resource->IsGameThreadShaderMapComplete());
+
+        UTexture* Filtered = nullptr;
+        for (int32 Attempt = 0; Attempt < 3 && !Filtered; ++Attempt)
+        {
+            Filtered = BlurCache.GetBlurred(Texture, FVector2D(0.125, 0.125), 0.5f);
+            if (!Filtered)
+            {
+                GShaderCompilingManager->FinishAllCompilation();
+                FlushRenderingCommands();
+            }
+        }
+        const TCHAR* SourceKind = Texture == Image.Get() ? TEXT("Image") : TEXT("Media texture");
+        TestNotNull(FString::Printf(TEXT("%s copy and Gaussian shaders become ready"), SourceKind), Filtered);
+        if (Filtered)
+        {
+            TestNotNull(TEXT("Prepared blur produces a render target"), Cast<UTextureRenderTarget2D>(Filtered));
+            TestFalse(TEXT("Prepared blur remains linear"), Filtered->SRGB);
+        }
     }
+    FlushRenderingCommands();
     return true;
 }
 #endif

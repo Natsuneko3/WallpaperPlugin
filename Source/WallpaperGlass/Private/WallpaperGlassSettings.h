@@ -25,20 +25,20 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category="Glass", meta=(ClampMin="0", ClampMax="20"))
 	float Refraction = 15.0f;
 
-	// Support radius of the 5x5 Gaussian kernel in node-local Slate units.
+	// Support radius of the shared, prefiltered Gaussian blur in node-local Slate units.
 	UPROPERTY(Config, EditAnywhere, Category="Gaussian Blur", meta=(ClampMin="0", ClampMax="32"))
-	float BlurRadius = 3.0f;
+	float BlurRadius = 24.0f;
 
 	UPROPERTY(Config, EditAnywhere, Category="Gaussian Blur", meta=(ClampMin="0", ClampMax="1"))
 	float GaussianStrength = 1.0f;
 
 	// Sigma relative to Blur Radius. Higher values spread weight toward the outer taps.
 	UPROPERTY(Config, EditAnywhere, Category="Gaussian Blur", meta=(ClampMin="0.15", ClampMax="1.5"))
-	float GaussianSigma = 1.5f;
+	float GaussianSigma = 0.6f;
 
 	// Fraction of Gaussian blur retained at the curved edge; the center uses full strength.
 	UPROPERTY(Config, EditAnywhere, Category="Gaussian Blur", meta=(ClampMin="0", ClampMax="1"))
-	float GaussianEdgeRetention = 0.15f;
+	float GaussianEdgeRetention = 1.0f;
 
 	UPROPERTY(Config, EditAnywhere, Category="Glass", meta=(ClampMin="0", ClampMax="1"))
 	float Transmission = 1.0f;

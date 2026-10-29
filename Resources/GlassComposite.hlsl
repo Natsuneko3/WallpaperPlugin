@@ -1,31 +1,13 @@
-// A normalized discrete Gaussian keeps a uniform background unchanged. The grid
-// covers [-1, 1] in both directions; BlurStep supplies its radius in video UV.
-float3 gaussianSamples[25] = {
-    Gaussian0, Gaussian1, Gaussian2, Gaussian3, Gaussian4,
-    Gaussian5, Gaussian6, Gaussian7, Gaussian8, Gaussian9,
-    Gaussian10, Gaussian11, Center, Gaussian13, Gaussian14,
-    Gaussian15, Gaussian16, Gaussian17, Gaussian18, Gaussian19,
-    Gaussian20, Gaussian21, Gaussian22, Gaussian23, Gaussian24
-};
-float sigma = clamp(Gaussian.y, 0.15, 1.5);
-// A 2D Gaussian factors into two 1D weights. Reuse the two noncentral
-// exponentials instead of evaluating an exponential separately for every tap.
-float nearWeight = exp(-0.125 / (sigma * sigma));
-float farWeight = exp(-0.5 / (sigma * sigma));
-float axisWeights[5] = { farWeight, nearWeight, 1, nearWeight, farWeight };
-float3 gaussianSum = 0;
-float axisWeightSum = 1 + 2 * (nearWeight + farWeight);
-[unroll]
-for (int gaussianIndex = 0; gaussianIndex < 25; ++gaussianIndex)
-{
-    float weight = axisWeights[gaussianIndex % 5] * axisWeights[gaussianIndex / 5];
-    gaussianSum += gaussianSamples[gaussianIndex] * weight;
-}
-float3 gaussian = gaussianSum / (axisWeightSum * axisWeightSum);
+// Gaussian convolution is shared across nodes and performed before all optical
+// sampling. Dispersion and scattering must not restore the unfiltered texture.
 float gaussianStrength = saturate(Gaussian.x) * lerp(1, saturate(Gaussian.z), Edge);
-float3 filtered = lerp(Center, gaussian, gaussianStrength);
-float3 diffuse = (Center * 4 + Scatter0 + Scatter1 + Scatter2 + Scatter3
+float3 filtered = lerp(Center, FilteredCenter, gaussianStrength);
+float3 sharpDiffuse = (Center * 4 + Scatter0 + Scatter1 + Scatter2 + Scatter3
                  + Scatter4 + Scatter5 + Scatter6 + Scatter7) / 12;
+float3 blurredDiffuse = (FilteredCenter * 4 + FilteredScatter0 + FilteredScatter1
+    + FilteredScatter2 + FilteredScatter3 + FilteredScatter4 + FilteredScatter5
+    + FilteredScatter6 + FilteredScatter7) / 12;
+float3 diffuse = lerp(sharpDiffuse, blurredDiffuse, gaussianStrength);
 float3 transmitted = lerp(filtered, diffuse, saturate(Optics.x));
 
 // These overlapping violet-to-red bands approximate a spectrum using RGB video.
@@ -33,6 +15,11 @@ float3 transmitted = lerp(filtered, diffuse, saturate(Optics.x));
 float3 spectrumSamples[9] = {
     Spectrum0, Spectrum1, Spectrum2, Spectrum3, Spectrum4,
     Spectrum5, Spectrum6, Spectrum7, Spectrum8
+};
+float3 blurredSpectrumSamples[9] = {
+    FilteredSpectrum0, FilteredSpectrum1, FilteredSpectrum2, FilteredSpectrum3,
+    FilteredSpectrum4, FilteredSpectrum5, FilteredSpectrum6, FilteredSpectrum7,
+    FilteredSpectrum8
 };
 float3 spectrumWeights[9] = {
     float3(0.35, 0, 1), float3(0.05, 0.1, 1), float3(0, 0.45, 1),
@@ -44,7 +31,8 @@ float3 spectrumWeightSum = 0;
 [unroll]
 for (int band = 0; band < 9; ++band)
 {
-    spectrumSum += spectrumSamples[band] * spectrumWeights[band];
+    spectrumSum += lerp(spectrumSamples[band], blurredSpectrumSamples[band], gaussianStrength)
+        * spectrumWeights[band];
     spectrumWeightSum += spectrumWeights[band];
 }
 float3 dispersed = spectrumSum / spectrumWeightSum;

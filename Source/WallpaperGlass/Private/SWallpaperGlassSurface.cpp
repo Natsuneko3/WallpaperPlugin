@@ -128,16 +128,27 @@ bool SWallpaperGlassSurface::UpdateMaterial(const FGeometry& Geometry, float Del
 	const float BlurRadius = bDiagnostic ? 0 : FMath::Clamp(Settings->BlurRadius, 0.0f, 32.0f);
 	const FVector2D BlurX = UV.AxisX / Size.X * BlurRadius;
 	const FVector2D BlurY = UV.AxisY / Size.Y * BlurRadius;
+	const float GaussianStrength = BlurRadius > 0 ? FMath::Clamp(Settings->GaussianStrength, 0.0f, 1.0f) : 0;
+	if (GaussianStrength > 0)
+	{
+		const FVector2D RadiusUV(FMath::Abs(BlurX.X) + FMath::Abs(BlurY.X),
+			FMath::Abs(BlurX.Y) + FMath::Abs(BlurY.Y));
+		UTexture* Filtered = Materials->Blur.GetBlurred(Texture, RadiusUV, Settings->GaussianSigma);
+		if (!Filtered)
+		{
+			return false;
+		}
+		Instance->SetTextureParameterValue(TEXT("FilteredWallpaper"), Filtered);
+	}
 	const FVector2D ScatterX = UV.AxisX / Size.X * (bDiagnostic ? 0 : Settings->ScatteringRadius);
 	const FVector2D ScatterY = UV.AxisY / Size.Y * (bDiagnostic ? 0 : Settings->ScatteringRadius);
 	Instance->SetVectorParameterValue(TEXT("Mapping"), FLinearColor(UV.Origin.X, UV.Origin.Y, 0, 0));
 	Instance->SetVectorParameterValue(TEXT("Axes"), FLinearColor(UV.AxisX.X, UV.AxisX.Y, UV.AxisY.X, UV.AxisY.Y));
 	Instance->SetVectorParameterValue(TEXT("Size"), FLinearColor(Size.X, Size.Y, 0, 0));
 	Instance->SetVectorParameterValue(TEXT("Shape"), FLinearColor(Settings->CornerRadius, Settings->EdgeWidth, bDiagnostic ? 0 : Settings->Refraction, 0));
-	Instance->SetVectorParameterValue(TEXT("BlurStep"), FLinearColor(BlurX.X, BlurX.Y, BlurY.X, BlurY.Y));
 	Instance->SetVectorParameterValue(TEXT("ScatterStep"), FLinearColor(ScatterX.X, ScatterX.Y, ScatterY.X, ScatterY.Y));
 	Instance->SetVectorParameterValue(TEXT("Gaussian"), FLinearColor(
-		BlurRadius > 0 ? FMath::Clamp(Settings->GaussianStrength, 0.0f, 1.0f) : 0,
+		GaussianStrength,
 		FMath::Clamp(Settings->GaussianSigma, 0.15f, 1.5f),
 		FMath::Clamp(Settings->GaussianEdgeRetention, 0.0f, 1.0f), 0));
 	Instance->SetVectorParameterValue(TEXT("Spectrum"), FLinearColor(

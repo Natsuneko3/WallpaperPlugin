@@ -1,6 +1,7 @@
 #include "Misc/AutomationTest.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
+#include "GlassBlurCache.h"
 #include "GlassMaterial.h"
 #include "Engine/Texture2D.h"
 #include "Engine/TextureRenderTarget2D.h"
@@ -24,19 +25,19 @@ namespace GlassRenderingTests
 	constexpr int32 ImageSize = 64;
 	constexpr int32 ColorTolerance = 3;
 
-	TStrongObjectPtr<UTexture2D> MakeTexture(TFunctionRef<FColor(int32, int32)> PixelAt)
+	TStrongObjectPtr<UTexture2D> MakeTexture(TFunctionRef<FColor(int32, int32)> PixelAt, int32 Size = ImageSize)
 	{
 		TArray<FColor> Pixels;
-		Pixels.SetNumUninitialized(ImageSize * ImageSize);
-		for (int32 Y = 0; Y < ImageSize; ++Y)
+		Pixels.SetNumUninitialized(Size * Size);
+		for (int32 Y = 0; Y < Size; ++Y)
 		{
-			for (int32 X = 0; X < ImageSize; ++X)
+			for (int32 X = 0; X < Size; ++X)
 			{
-				Pixels[Y * ImageSize + X] = PixelAt(X, Y);
+				Pixels[Y * Size + X] = PixelAt(X, Y);
 			}
 		}
 		const TConstArrayView64<uint8> Bytes(reinterpret_cast<const uint8*>(Pixels.GetData()), Pixels.Num() * sizeof(FColor));
-		TStrongObjectPtr<UTexture2D> Texture(UTexture2D::CreateTransient(ImageSize, ImageSize, PF_B8G8R8A8, NAME_None, Bytes));
+		TStrongObjectPtr<UTexture2D> Texture(UTexture2D::CreateTransient(Size, Size, PF_B8G8R8A8, NAME_None, Bytes));
 		if (Texture.IsValid())
 		{
 			Texture->SRGB = false;
@@ -49,9 +50,15 @@ namespace GlassRenderingTests
 
 	struct FRenderFixture
 	{
+		explicit FRenderFixture(int32 InSize = ImageSize) : Size(InSize) {}
+
+		const int32 Size;
 		FWidgetRenderer* Renderer = new FWidgetRenderer(false, true);
 		TStrongObjectPtr<UMaterial> Material;
 		TStrongObjectPtr<UMaterialInstanceDynamic> Instance;
+		FGlassBlurCache BlurCache;
+		float BlurRadius = 0;
+		float BlurSigma = 0.5f;
 
 		~FRenderFixture()
 		{
@@ -86,14 +93,13 @@ namespace GlassRenderingTests
 			Instance->SetTextureParameterValue(TEXT("Wallpaper"), Texture);
 			Instance->SetVectorParameterValue(TEXT("Mapping"), FLinearColor(0, 0, 0, 0));
 			Instance->SetVectorParameterValue(TEXT("Axes"), FLinearColor(1, 0, 0, 1));
-			Instance->SetVectorParameterValue(TEXT("Size"), FLinearColor(ImageSize, ImageSize, 0, 0));
+			Instance->SetVectorParameterValue(TEXT("Size"), FLinearColor(Size, Size, 0, 0));
 			Instance->SetVectorParameterValue(TEXT("Shape"), FLinearColor(0, 1, 0, 0));
 			Instance->SetVectorParameterValue(TEXT("Mouse"), FLinearColor(0, 0, 0, 0));
-			Instance->SetVectorParameterValue(TEXT("BlurStep"), FLinearColor(0, 0, 0, 0));
-			Instance->SetVectorParameterValue(TEXT("Gaussian"), FLinearColor(0, 0.5f, 1, 0));
+			SetGaussian(0, 0);
 			Instance->SetVectorParameterValue(TEXT("Spectrum"), FLinearColor(0, 0, 1.2f, 0));
 			Instance->SetVectorParameterValue(TEXT("DispersionShape"), FLinearColor(24, 0, 0, 0));
-			Instance->SetVectorParameterValue(TEXT("ScatterStep"), FLinearColor(8.0f / ImageSize, 0, 0, 8.0f / ImageSize));
+			Instance->SetVectorParameterValue(TEXT("ScatterStep"), FLinearColor(8.0f / Size, 0, 0, 8.0f / Size));
 			Instance->SetVectorParameterValue(TEXT("Absorption"), FLinearColor::White);
 			Instance->SetVectorParameterValue(TEXT("Finish"), FLinearColor(0, 1, 0, 0));
 			SetScattering(0);
@@ -107,8 +113,9 @@ namespace GlassRenderingTests
 
 		void SetGaussian(float Strength, float Radius, float Sigma = 0.5f)
 		{
+			BlurRadius = Radius;
+			BlurSigma = Sigma;
 			Instance->SetVectorParameterValue(TEXT("Gaussian"), FLinearColor(Strength, Sigma, 1, 0));
-			Instance->SetVectorParameterValue(TEXT("BlurStep"), FLinearColor(Radius / ImageSize, 0, 0, Radius / ImageSize));
 		}
 
 		void SetSpectrum(float Radius, float Strength)
@@ -116,15 +123,39 @@ namespace GlassRenderingTests
 			Instance->SetVectorParameterValue(TEXT("Spectrum"), FLinearColor(Radius, Strength, 1.2f, 0));
 		}
 
+		bool PrepareFilteredWallpaper()
+		{
+			UTexture* Source = nullptr;
+			if (!Instance->GetTextureParameterValue(FMaterialParameterInfo(TEXT("Wallpaper")), Source) || !Source)
+			{
+				return false;
+			}
+			const FVector2D RadiusUV(BlurRadius / Size, BlurRadius / Size);
+			for (int32 Attempt = 0; Attempt < 3; ++Attempt)
+			{
+				if (UTexture* Filtered = BlurCache.GetBlurred(Source, RadiusUV, BlurSigma))
+				{
+					Instance->SetTextureParameterValue(TEXT("FilteredWallpaper"), Filtered);
+					return true;
+				}
+				GShaderCompilingManager->FinishAllCompilation();
+			}
+			return false;
+		}
+
 		bool Render(UObject* Resource, TArray<FColor>& Pixels)
 		{
+			if (Resource == Instance.Get() && !PrepareFilteredWallpaper())
+			{
+				return false;
+			}
 			FSlateBrush Brush;
 			Brush.DrawAs = ESlateBrushDrawType::Image;
-			Brush.SetImageSize(FVector2D(ImageSize, ImageSize));
+			Brush.SetImageSize(FVector2D(Size, Size));
 			Brush.SetResourceObject(Resource);
 			Brush.TintColor = FLinearColor::White;
 			const auto Image = SNew(SImage).Image(&Brush);
-			TStrongObjectPtr<UTextureRenderTarget2D> Target(Renderer->DrawWidget(Image, FVector2D(ImageSize, ImageSize)));
+			TStrongObjectPtr<UTextureRenderTarget2D> Target(Renderer->DrawWidget(Image, FVector2D(Size, Size)));
 			if (!Target.IsValid())
 			{
 				return false;
@@ -133,7 +164,7 @@ namespace GlassRenderingTests
 			FReadSurfaceDataFlags Flags(RCM_UNorm);
 			Flags.SetLinearToGamma(false);
 			return Target->GameThread_GetRenderTargetResource()->ReadPixels(Pixels, Flags)
-				&& Pixels.Num() == ImageSize * ImageSize;
+				&& Pixels.Num() == Size * Size;
 		}
 	};
 
@@ -392,6 +423,168 @@ namespace GlassRenderingTests
 		return true;
 	}
 
+	bool CheckFrostedBlur(FAutomationTestBase& Test, FRenderFixture& Fixture)
+	{
+		auto Texture = MakeTexture([](int32 X, int32)
+		{
+			return X % 8 < 4 ? FColor::Black : FColor::White;
+		});
+		if (!Texture.IsValid() || !Fixture.Initialize(Test, Texture.Get()))
+		{
+			return false;
+		}
+		TArray<FColor> Sharp, Radius16, Radius32;
+		if (!Fixture.Render(Fixture.Instance.Get(), Sharp))
+		{
+			return false;
+		}
+		Fixture.SetGaussian(1, 16, 1.5f);
+		if (!Fixture.Render(Fixture.Instance.Get(), Radius16))
+		{
+			return false;
+		}
+		Fixture.SetGaussian(1, 32, 1.5f);
+		if (!Fixture.Render(Fixture.Instance.Get(), Radius32))
+		{
+			return false;
+		}
+		const float SharpVariation = RowVariation(Sharp);
+		Test.TestTrue(TEXT("The frosted fixture contains resolved alternating bars"), SharpVariation > 1000);
+		// A five-tap axis at radius 16/32 lands on the same phase of period-eight bars.
+		Test.TestTrue(TEXT("Radius 16 removes at least 80 percent of high-frequency variation"),
+			RowVariation(Radius16) < SharpVariation * 0.2f);
+		Test.TestTrue(TEXT("Radius 32 removes at least 80 percent of high-frequency variation"),
+			RowVariation(Radius32) < SharpVariation * 0.2f);
+		SaveComparison(Test, TEXT("GlassFrostedBlur.png"), Sharp, Radius16, Radius32);
+		return true;
+	}
+
+	struct FFrequencyMetrics
+	{
+		double Mean = 0;
+		double RootMeanSquare = 0;
+		int32 PeakToPeak = 0;
+	};
+
+	FFrequencyMetrics MeasureFrequency(const TArray<FColor>& Pixels, int32 Size, const FIntRect& Region)
+	{
+		double Sum = 0;
+		double SquaredError = 0;
+		int32 Minimum = 255;
+		int32 Maximum = 0;
+		for (int32 Y = Region.Min.Y; Y < Region.Max.Y; ++Y)
+		{
+			for (int32 X = Region.Min.X; X < Region.Max.X; ++X)
+			{
+				const FColor Pixel = Pixels[Y * Size + X];
+				Sum += Pixel.R + Pixel.G + Pixel.B;
+				SquaredError += FMath::Square(Pixel.R - 127.5) + FMath::Square(Pixel.G - 127.5) + FMath::Square(Pixel.B - 127.5);
+				Minimum = FMath::Min(Minimum, FMath::Min3(int32(Pixel.R), int32(Pixel.G), int32(Pixel.B)));
+				Maximum = FMath::Max(Maximum, FMath::Max3(int32(Pixel.R), int32(Pixel.G), int32(Pixel.B)));
+			}
+		}
+		const int32 ChannelCount = Region.Width() * Region.Height() * 3;
+		return { Sum / ChannelCount, FMath::Sqrt(SquaredError / ChannelCount), Maximum - Minimum };
+	}
+
+	void TestFrostedFrequency(FAutomationTestBase& Test, const FString& Label, const FFrequencyMetrics& Metrics)
+	{
+		// Dense, one-texel Gaussian integration at sigma 1.5 gives RMS <= 3.25
+		// and peak-to-peak <= 6.50 for this matrix. Allow approximations, not visible bars.
+		const FString Measurement = FString::Printf(TEXT("%s: mean %.2f, RMS %.2f <= 12, peak-to-peak %d <= 32"),
+			*Label, Metrics.Mean, Metrics.RootMeanSquare, Metrics.PeakToPeak);
+		Test.TestTrue(Measurement, FMath::Abs(Metrics.Mean - 127.5) <= ColorTolerance
+			&& Metrics.RootMeanSquare <= 12 && Metrics.PeakToPeak <= 32);
+	}
+
+	bool CheckFrostedFrequencyMatrix(FAutomationTestBase& Test)
+	{
+		constexpr int32 Size = 256;
+		const int32 Periods[] = { 4, 8, 16 };
+		const int32 Radii[] = { 16, 24, 32 };
+		// Leave more than the maximum kernel radius on every side of the measured region.
+		const FIntRect Interior(64, 64, 192, 192);
+		FRenderFixture Fixture(Size);
+		for (int32 Pattern = 0; Pattern < UE_ARRAY_COUNT(Periods) * 2; ++Pattern)
+		{
+			const int32 Period = Periods[Pattern / 2];
+			const int32 Phase = Pattern % 2;
+			auto Texture = MakeTexture([Period, Phase](int32 X, int32)
+			{
+				return (X + Phase) % Period < Period / 2 ? FColor::Black : FColor::White;
+			}, Size);
+			if (!Texture.IsValid() || (!Fixture.Instance.IsValid() && !Fixture.Initialize(Test, Texture.Get())))
+			{
+				return false;
+			}
+			Fixture.Instance->SetTextureParameterValue(TEXT("Wallpaper"), Texture.Get());
+			for (const int32 Radius : Radii)
+			{
+				Fixture.SetGaussian(1, Radius, 1.5f);
+				TArray<FColor> Filtered;
+				if (!Fixture.Render(Fixture.Instance.Get(), Filtered))
+				{
+					return false;
+				}
+				const FString Label = FString::Printf(TEXT("Frosted radius %d, period %d, phase %d"), Radius, Period, Phase);
+				TestFrostedFrequency(Test, Label, MeasureFrequency(Filtered, Size, Interior));
+			}
+		}
+		return true;
+	}
+
+	void TestNoRestoredDetail(FAutomationTestBase& Test, const FString& Label,
+		const FFrequencyMetrics& Blurred, const FFrequencyMetrics& Combined)
+	{
+		TestFrostedFrequency(Test, Label, Combined);
+		const FString Measurement = FString::Printf(TEXT("%s does not restore detail: RMS %.2f -> %.2f, peak-to-peak %d -> %d"),
+			*Label, Blurred.RootMeanSquare, Combined.RootMeanSquare, Blurred.PeakToPeak, Combined.PeakToPeak);
+		Test.TestTrue(Measurement, Combined.RootMeanSquare <= Blurred.RootMeanSquare + ColorTolerance
+			&& Combined.PeakToPeak <= Blurred.PeakToPeak + ColorTolerance * 2);
+	}
+
+	bool CheckFrostedEdgeOptics(FAutomationTestBase& Test, bool bVerticalVariation)
+	{
+		constexpr int32 Size = 256;
+		auto Texture = MakeTexture([bVerticalVariation](int32 X, int32 Y)
+		{
+			const int32 Tangent = bVerticalVariation ? Y : X;
+			return (Tangent + 1) % 8 < 4 ? FColor::Black : FColor::White;
+		}, Size);
+		FRenderFixture Fixture(Size);
+		if (!Texture.IsValid() || !Fixture.Initialize(Test, Texture.Get()))
+		{
+			return false;
+		}
+		Fixture.SetGaussian(1, 24, 1.5f); // Full edge retention isolates later filter composition.
+		Fixture.Instance->SetVectorParameterValue(TEXT("Shape"), FLinearColor(16, 8.8f, 15, 0));
+		Fixture.Instance->SetVectorParameterValue(TEXT("DispersionShape"), FLinearColor(96, 0, 0, 0));
+		// The straight edge's normal is perpendicular to texture variation: dispersion
+		// cannot legitimately sharpen this signal, regardless of its broad default band.
+		const FIntRect Edge = bVerticalVariation ? FIntRect(4, 64, 12, 192) : FIntRect(64, 4, 192, 12);
+		TArray<FColor> Blurred;
+		if (!Fixture.Render(Fixture.Instance.Get(), Blurred))
+		{
+			return false;
+		}
+		const FFrequencyMetrics Baseline = MeasureFrequency(Blurred, Size, Edge);
+		TestFrostedFrequency(Test, TEXT("Tangential stripes with Gaussian only"), Baseline);
+		for (int32 Mode = 1; Mode <= 3; ++Mode)
+		{
+			Fixture.SetSpectrum(15, (Mode & 1) != 0 ? 1 : 0);
+			Fixture.SetScattering((Mode & 2) != 0 ? 1 : 0);
+			TArray<FColor> Combined;
+			if (!Fixture.Render(Fixture.Instance.Get(), Combined))
+			{
+				return false;
+			}
+			const FString Label = FString::Printf(TEXT("%s edge: spectrum %d, scattering %d"),
+				bVerticalVariation ? TEXT("Left") : TEXT("Top"), Mode & 1, (Mode >> 1) & 1);
+			TestNoRestoredDetail(Test, Label, Baseline, MeasureFrequency(Combined, Size, Edge));
+		}
+		return true;
+	}
+
 	bool CheckSpectralConstant(FAutomationTestBase& Test, FRenderFixture& Fixture)
 	{
 		auto Texture = MakeTexture([](int32, int32)
@@ -572,6 +765,27 @@ bool FGlassGaussianTest::RunTest(const FString&)
 		|| !GlassRenderingTests::CheckGaussianStep(*this, Fixture))
 	{
 		AddError(TEXT("Unable to create or read back a Gaussian rendering fixture."));
+		return false;
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGlassFrostedBlurTest, "Wallpaper.Glass.FrostedBlur",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGlassFrostedBlurTest::RunTest(const FString&)
+{
+	if (!GlassRenderingTests::CanRender(*this))
+	{
+		return false;
+	}
+	GlassRenderingTests::FRenderFixture Fixture;
+	if (!GlassRenderingTests::CheckFrostedBlur(*this, Fixture)
+		|| !GlassRenderingTests::CheckFrostedFrequencyMatrix(*this)
+		|| !GlassRenderingTests::CheckFrostedEdgeOptics(*this, false)
+		|| !GlassRenderingTests::CheckFrostedEdgeOptics(*this, true))
+	{
+		AddError(TEXT("Unable to create or read back a frosted rendering fixture."));
 		return false;
 	}
 	return true;

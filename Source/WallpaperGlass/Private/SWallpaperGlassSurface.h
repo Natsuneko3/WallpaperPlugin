@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GlassBlurCache.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/StrongObjectPtr.h"
@@ -11,6 +12,7 @@ class UWallpaperGlassSettings;
 
 struct FGlassMaterialCache
 {
+    FGlassBlurCache Blur;
     UMaterial* FindOrCreate(UTexture* Texture);
     UMaterial* FindOrCreateHighlight();
     TMap<uint8, TStrongObjectPtr<UMaterial>> Materials;

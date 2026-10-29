@@ -1,5 +1,6 @@
 #include "GlassMaterial.h"
 
+#include "Engine/Texture2D.h"
 #include "Interfaces/IPluginManager.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialExpressionCustom.h"
@@ -69,9 +70,9 @@ namespace
 	{
 		UMaterial* Material;
 		UTexture* Texture;
+		UTexture* FilteredTexture;
 		UMaterialExpressionCustom* Geometry;
 		UMaterialExpressionCustom* Composite;
-		UMaterialExpressionVectorParameter* BlurStep;
 		UMaterialExpressionVectorParameter* ScatterStep;
 		UMaterialExpressionVectorParameter* Spectrum;
 	};
@@ -83,7 +84,6 @@ namespace
 		UV->OutputType = CMOT_Float2;
 		UV->Code = FString::Printf(TEXT("return clamp(UV + %s, 0.0001, 0.9999);"), Offset);
 		Input(UV, TEXT("UV"), Inputs.Geometry);
-		Input(UV, TEXT("Step"), Inputs.BlurStep, 5);
 		Input(UV, TEXT("Scatter"), Inputs.ScatterStep, 5);
 		Input(UV, TEXT("Normal"), Inputs.Geometry, 4);
 		Input(UV, TEXT("DispersionEdge"), Inputs.Geometry, 5);
@@ -94,20 +94,14 @@ namespace
 		Sample->AutoSetSampleType();
 		Sample->Coordinates.Connect(0, UV);
 		Input(Inputs.Composite, Name, Sample);
-	}
-
-	void AddGaussianSamples(const FGlassSampleInputs& Inputs)
-	{
-		constexpr int32 KernelWidth = 5;
-		constexpr int32 CenterIndex = 12;
-		for (int32 Index = 0; Index < KernelWidth * KernelWidth; ++Index)
-		{
-			const float X = (Index % KernelWidth - 2) * 0.5f;
-			const float Y = (Index / KernelWidth - 2) * 0.5f;
-			const FString Name = Index == CenterIndex ? TEXT("Center") : FString::Printf(TEXT("Gaussian%d"), Index);
-			const FString Offset = FString::Printf(TEXT("Step.xy * %.2f + Step.zw * %.2f"), X, Y);
-			AddWallpaperSample(Inputs, *Name, *Offset);
-		}
+		// Every optical branch uses the same preblurred source. Keep the original
+		// sample only for the explicit Gaussian strength/edge blend and diagnostics.
+		auto* Filtered = AddExpression<UMaterialExpressionTextureSampleParameter2D>(Inputs.Material);
+		Filtered->ParameterName = TEXT("FilteredWallpaper");
+		Filtered->Texture = Inputs.FilteredTexture;
+		Filtered->AutoSetSampleType();
+		Filtered->Coordinates.Connect(0, UV);
+		Input(Inputs.Composite, *(FString(TEXT("Filtered")) + Name), Filtered);
 	}
 
 	void AddScatteringSamples(const FGlassSampleInputs& Inputs)
@@ -143,11 +137,15 @@ namespace
 		Composite->Inputs.Reset();
 		Composite->OutputType = CMOT_Float4;
 		Composite->Code = Code;
-		FGlassSampleInputs Inputs = { Material, Texture, Geometry, Composite,
-			Parameter(Material, TEXT("BlurStep"), FLinearColor::Black),
+		// The shared blur output is linear, including when the source is an sRGB
+		// image or external media texture. Give its parameter a matching default.
+		UTexture2D* FilteredTexture = UTexture2D::CreateTransient(1, 1);
+		FilteredTexture->SRGB = false;
+		FilteredTexture->UpdateResource();
+		FGlassSampleInputs Inputs = { Material, Texture, FilteredTexture, Geometry, Composite,
 			Parameter(Material, TEXT("ScatterStep"), FLinearColor::Black),
 			Parameter(Material, TEXT("Spectrum"), FLinearColor(10,0.85f,1.2f,0)) };
-		AddGaussianSamples(Inputs);
+		AddWallpaperSample(Inputs, TEXT("Center"), TEXT("float2(0, 0)"));
 		AddScatteringSamples(Inputs);
 		AddSpectrumSamples(Inputs);
 		Input(Composite, TEXT("Mask"), Geometry, 1);
