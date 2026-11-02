@@ -2,6 +2,7 @@
 
 #include "WallPaperEditor.h"
 
+#include "MaterialDomain.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialExpressionTextureSampleParameter2D.h"
 #include "MediaPlayer.h"

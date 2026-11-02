@@ -2,6 +2,7 @@
 
 #include "Engine/Texture2D.h"
 #include "Interfaces/IPluginManager.h"
+#include "MaterialDomain.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialExpressionCustom.h"
 #include "Materials/MaterialExpressionComponentMask.h"
@@ -62,7 +63,8 @@ namespace
 		Output(Geometry, TEXT("Edge"));
 		Output(Geometry, TEXT("NormalUV"), CMOT_Float2);
 		Output(Geometry, TEXT("DispersionEdge"));
-		Geometry->RebuildOutputs();
+		// PostEditChange rebuilds outputs through the exported API on UE 5.3-5.6.
+		Geometry->PostEditChange();
 		return Geometry;
 	}
 
